@@ -18,11 +18,7 @@ validateEnvVariables();
 // Initialize GitHub Client
 const gh = new GitHub({ token: process.env.GITHUB_TOKEN });
 
-/**
- * Check if a repository exists.
- * @param {string} repoName - The name of the repository.
- * @returns {Promise<boolean>} - True if the repository exists, otherwise false.
- */
+// Check if a repository exists.
 export async function checkRepoExists(repoName) {
   try {
     console.log(`Checking if repository "${repoName}" exists...`);
@@ -40,12 +36,7 @@ export async function checkRepoExists(repoName) {
   }
 }
 
-/**
- * Create a new repository.
- * @param {string} repoName - The name of the repository.
- * @param {string} description - A short description for the repository.
- * @returns {Promise<string>} - The URL of the created repository.
- */
+// Create a new repository.
 export async function createRepository(repoName, description) {
   try {
     console.log(`Creating repository "${repoName}"...`);
@@ -65,12 +56,7 @@ export async function createRepository(repoName, description) {
   }
 }
 
-/**
- * Manage a repository: check if it exists, and create it if it doesn't.
- * @param {string} repoName - The name of the repository to manage.
- * @param {string} description - A short description for the repository.
- * @returns {Promise<string>} - Status message about the repository.
- */
+// Manage a repository: check if it exists, and create it if it doesn't.
 export async function manageRepository(repoName, description) {
   try {
     const exists = await checkRepoExists(repoName);
