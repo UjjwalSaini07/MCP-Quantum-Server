@@ -3,36 +3,33 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { z } from "zod";
 import dotenv from "dotenv";
-import { checkRepoExists, createRepository } from "./main_MCP.tool.js";
+import { checkRepoExists, createRepository, manageRepository, } from "./main_MCP.tool.js";
 
 dotenv.config();
 
-// Initialize MCP Server
+const app = express();
+app.use(express.json());
+
+// MCP TOOL SERVER
 const server = new McpServer({
   name: "github-repo-server",
   version: "1.0.0",
 });
 
-// Express app setup
-const app = express();
-
-// Define tools
+// Register MCP tools (message-based usage like /sse)
 server.tool(
   "checkRepoExists",
   "Check if a GitHub repository exists",
-  {
-    repoName: z.string(),
-  },
-  async (arg) => {
-    const { repoName } = arg;
+  { repoName: z.string() },
+  async ({ repoName }) => {
     const exists = await checkRepoExists(repoName);
     return {
       content: [
         {
           type: "text",
           text: exists
-            ? `The repository "${repoName}" exists.`
-            : `The repository "${repoName}" does not exist.`,
+            ? `Repository "${repoName}" exists.`
+            : `Repository "${repoName}" does not exist.`,
         },
       ],
     };
@@ -46,8 +43,7 @@ server.tool(
     repoName: z.string(),
     description: z.string().optional(),
   },
-  async (arg) => {
-    const { repoName, description } = arg;
+  async ({ repoName, description }) => {
     const repoUrl = await createRepository(repoName, description || "");
     return {
       content: [
@@ -60,19 +56,69 @@ server.tool(
   }
 );
 
-// Manage server-sent events (SSE)
+// ============================
+// REST API ENDPOINTS FOR CLIENT
+// ============================
+
+// Check if repository exists
+app.post("/tool/checkRepoExists", async (req, res) => {
+  try {
+    const { repoName } = req.body;
+    const exists = await checkRepoExists(repoName);
+    res.json({
+      content: [
+        {
+          type: "text",
+          text: exists
+            ? `Repository "${repoName}" exists.`
+            : `Repository "${repoName}" does not exist.`,
+        },
+      ],
+    });
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+});
+
+// Create repository
+app.post("/tool/createRepository", async (req, res) => {
+  try {
+    const { repoName, description } = req.body;
+    const repoUrl = await createRepository(repoName, description || "");
+    res.json({
+      content: [
+        {
+          type: "text",
+          text: `Repository created at: ${repoUrl}`,
+        },
+      ],
+    });
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+});
+
+// Optional: combined manage endpoint
+app.post("/tool/manageRepository", async (req, res) => {
+  try {
+    const { repoName, description } = req.body;
+    const message = await manageRepository(repoName, description || "");
+    res.json({ message });
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+});
+
+// SERVER-SENT EVENTS (MCP)
 const transports = {};
 
 app.get("/sse", async (_, res) => {
   const transport = new SSEServerTransport("/messages", res);
   transports[transport.sessionId] = transport;
-  res.on("close", () => {
-    delete transports[transport.sessionId];
-  });
+  res.on("close", () => delete transports[transport.sessionId]);
   await server.connect(transport);
 });
 
-// Handle messages
 app.post("/messages", async (req, res) => {
   const sessionId = req.query.sessionId;
   const transport = transports[sessionId];
@@ -83,7 +129,7 @@ app.post("/messages", async (req, res) => {
   }
 });
 
-// Start the server
+// MAIN SERVER START
 app.listen(3001, () => {
   console.log("Server is running on http://localhost:3001");
 });
