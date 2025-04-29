@@ -55,7 +55,9 @@ export async function createRepository(repoName, description) {
       description,
       private: false,
     });
-    console.log(`Repository "${repoName}" created at: ${response.data.html_url}`);
+    console.log(
+      `Repository "${repoName}" created at: ${response.data.html_url}`
+    );
     return response.data.html_url;
   } catch (error) {
     console.error("Error creating repository:", error);
@@ -87,14 +89,3 @@ export async function manageRepository(repoName, description) {
     throw error;
   }
 }
-
-// Example Execution
-// (async () => {
-//     try {
-//       const repoName = "example-repo";
-//       const description = "This is an automated repository created by MCP server.";
-//       await manageRepository(repoName, description);
-//     } catch (err) {
-//       console.error("Execution failed:", err.message);
-//     }
-//   })();
