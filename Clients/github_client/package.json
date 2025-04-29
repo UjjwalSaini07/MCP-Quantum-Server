@@ -18,9 +18,9 @@
   "type": "module",
   "main": "index.ts",
   "scripts": {
-    "dev": "tsx watch index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js"
+    "dev": "nodemon index.js",
+    "build": "echo 'No build step needed for plain JS'",
+    "start": "node index.js"
   },
   "dependencies": {
     "@google/genai": "^0.9.0",
