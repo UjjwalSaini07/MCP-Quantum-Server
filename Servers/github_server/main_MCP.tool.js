@@ -21,13 +21,13 @@ const gh = new GitHub({ token: process.env.GITHUB_TOKEN });
 /**
  * Check if a repository exists.
  * @param {string} repoName - The name of the repository.
- * @returns {boolean} - True if the repository exists, otherwise false.
+ * @returns {Promise<boolean>} - True if the repository exists, otherwise false.
  */
-async function checkRepoExists(repoName) {
+export async function checkRepoExists(repoName) {
   try {
     console.log(`Checking if repository "${repoName}" exists...`);
     const repo = gh.getRepo(process.env.GITHUB_REPO_OWNER, repoName);
-    const response = await repo.getDetails();
+    await repo.getDetails();
     console.log(`Repository "${repoName}" found.`);
     return true;
   } catch (error) {
@@ -44,9 +44,9 @@ async function checkRepoExists(repoName) {
  * Create a new repository.
  * @param {string} repoName - The name of the repository.
  * @param {string} description - A short description for the repository.
- * @returns {string} - The URL of the created repository.
+ * @returns {Promise<string>} - The URL of the created repository.
  */
-async function createRepository(repoName, description) {
+export async function createRepository(repoName, description) {
   try {
     console.log(`Creating repository "${repoName}"...`);
     const user = gh.getUser();
@@ -64,31 +64,37 @@ async function createRepository(repoName, description) {
 }
 
 /**
- * Main automation function.
+ * Manage a repository: check if it exists, and create it if it doesn't.
  * @param {string} repoName - The name of the repository to manage.
  * @param {string} description - A short description for the repository.
+ * @returns {Promise<string>} - Status message about the repository.
  */
-async function manageRepository(repoName, description) {
+export async function manageRepository(repoName, description) {
   try {
     const exists = await checkRepoExists(repoName);
     if (exists) {
-      console.log(`Repository "${repoName}" already exists. No action taken.`);
+      const message = `Repository "${repoName}" already exists.`;
+      console.log(message);
+      return message;
     } else {
       const repoUrl = await createRepository(repoName, description);
-      console.log(`Repository created successfully: ${repoUrl}`);
+      const successMessage = `Repository created successfully: ${repoUrl}`;
+      console.log(successMessage);
+      return successMessage;
     }
   } catch (error) {
     console.error("Error managing repository:", error.message);
+    throw error;
   }
 }
 
 // Example Execution
-(async () => {
-  try {
-    const repoName = "example-repo";
-    const description = "This is an automated repository created by MCP server.";
-    await manageRepository(repoName, description);
-  } catch (err) {
-    console.error("Execution failed:", err.message);
-  }
-})();
+// (async () => {
+//     try {
+//       const repoName = "example-repo";
+//       const description = "This is an automated repository created by MCP server.";
+//       await manageRepository(repoName, description);
+//     } catch (err) {
+//       console.error("Execution failed:", err.message);
+//     }
+//   })();
