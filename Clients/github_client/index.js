@@ -79,12 +79,12 @@ async function main() {
         )}\n> `
       );
 
-      if (action.toLowerCase() === "exit") {
+      if (action.toLowerCase() === "exit" || action === "11") {
         console.log(chalk.green("Goodbye!"));
         process.exit(0);
       }
 
-      if (action.toLowerCase() === "help") {
+      if (action.toLowerCase() === "help" || action === "10") {
         console.log(chalk.magentaBright("\nAvailable Commands:"));
         console.log(chalk.yellow("check") + ": Check if a repository exists.");
         console.log(chalk.yellow("create") + ": Create a new repository.");
@@ -99,7 +99,7 @@ async function main() {
         continue;
       }
 
-      if (action.toLowerCase() === "list") {
+      if (action.toLowerCase() === "list" || action === "4") {
         const msg = await callTool("listRepositories", {});
         console.log(chalk.greenBright("\n📂 Repositories:"));
         console.log(msg);
@@ -107,7 +107,7 @@ async function main() {
         continue;
       }
 
-      if (action.toLowerCase() === "batch") {
+      if (action.toLowerCase() === "batch" || action === "7") {
         const filePath = await ask("Enter the path to the batch JSON file:\n> ");
         if (!fs.existsSync(filePath)) {
           console.log(chalk.red("❌ File not found."));
@@ -126,7 +126,7 @@ async function main() {
         continue;
       }
 
-      if (action.toLowerCase() === "getuser") {
+      if (action.toLowerCase() === "getuser" || action === "9") {
         const username = await ask("Enter username:\n> ");
         
         try {
@@ -152,7 +152,7 @@ async function main() {
         continue;
       }
 
-      if (action.toLowerCase() === "delete") {
+      if (action.toLowerCase() === "delete" || action === "5") {
         const confirmation = await ask(`Are you sure you want to delete ${repoName}? (yes/no)\n> `);
         if (confirmation.toLowerCase() === "yes") {
           const msg = await callTool("deleteRepository", { repoName });
@@ -164,7 +164,7 @@ async function main() {
         continue;
       }
 
-      if (action.toLowerCase() === "view") {
+      if (action.toLowerCase() === "view" || action === "6") {
         const msg = await callTool("viewRepository", { repoName });
         console.log(chalk.greenBright("\n📄 Repository Details:"));
         console.log(msg);
@@ -173,11 +173,11 @@ async function main() {
       }
 
       let description = "";
-      if (action === "create" || action === "manage") {
+      if (action === "create" || action === "manage" || action === "2" || action === "3") {
         description = await ask("Enter description (optional):\n> ");
       }
 
-      if (action.toLowerCase() === "collaborator") {
+      if (action.toLowerCase() === "collaborator" || action === "8") {
         const collaboratorAction = await ask(
           `Do you want to add or remove a collaborator? (add/remove)\n> `
         );
@@ -214,13 +214,15 @@ async function main() {
       }
 
       switch (action.toLowerCase()) {
-        case "check": {
+        case "check" :
+          case "1": {
           const msg = await callTool("checkRepoExists", { repoName });
           console.log(chalk.green("\n✅ " + msg));
           logAction(`Checked repository: ${repoName}`);
           break;
         }
-        case "create": {
+        case "create" :
+          case "2": {
           const msg = await callTool("createRepository", {
             repoName,
             description,
@@ -229,7 +231,8 @@ async function main() {
           logAction(`Created repository: ${repoName}`);
           break;
         }
-        case "manage": {
+        case "manage" :
+          case "3": {
           const msg = await callTool("manageRepository", {
             repoName,
             description,
