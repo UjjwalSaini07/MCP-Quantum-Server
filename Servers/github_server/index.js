@@ -424,11 +424,11 @@ app.post('/tool/getRepositoryTraffic', async (req, res) => {
 
   try {
     const traffic = await getRepositoryTraffic(repoName);
-    console.log('Fetched traffic:', traffic); // And this
+    // console.log('Fetched traffic:', traffic);
 
     res.status(200).json({ message: 'Repository traffic fetched.', traffic });
   } catch (error) {
-    console.error('Error fetching traffic:', error); // And this
+    // console.error('Error fetching traffic:', error);
     res.status(500).json({ message: error.message });
   }
 });
