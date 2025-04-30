@@ -3,12 +3,14 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { z } from "zod";
 import dotenv from "dotenv";
+import chalk from "chalk";
 import { checkRepoExists, createRepository, manageRepository, listRepositories, deleteRepository, viewRepository, addCollaborator, removeCollaborator} from "./main_MCP.tool.js";
 
 dotenv.config();
 
 const app = express();
 app.use(express.json());
+const PORT = process.env.PORT || 3001;
 
 // MCP TOOL SERVER
 const server = new McpServer({
@@ -36,6 +38,7 @@ server.tool(
   }
 );
 
+// Create Repository
 server.tool(
   "createRepository",
   "Create a new GitHub repository",
@@ -56,6 +59,7 @@ server.tool(
   }
 );
 
+// Managing Repository
 server.tool(
   "manageRepository",
   "Manage a GitHub repository: create or update description, retrieve details",
@@ -133,6 +137,7 @@ server.tool(
   }
 );
 
+// Adding Collaborator
 server.tool(
   "addCollaborator",
   "Add a collaborator to a GitHub repository",
@@ -154,6 +159,7 @@ server.tool(
   }
 );
 
+// Removing Collaborator
 server.tool(
   "removeCollaborator",
   "Remove a collaborator from a GitHub repository",
@@ -216,6 +222,7 @@ app.post("/tool/createRepository", async (req, res) => {
   }
 });
 
+// View Data of repository
 app.post("/tool/viewRepository", async (req, res) => {
   try {
     const { repoName } = req.body;
@@ -233,6 +240,7 @@ app.post("/tool/viewRepository", async (req, res) => {
   }
 });
 
+// Delete repository
 app.post("/tool/deleteRepository", async (req, res) => {
   try {
     const { repoName } = req.body;
@@ -250,6 +258,7 @@ app.post("/tool/deleteRepository", async (req, res) => {
   }
 });
 
+// List all repositories
 app.post("/tool/listRepositories", async (req, res) => {
   try {
     const repos = await listRepositories();
@@ -266,6 +275,7 @@ app.post("/tool/listRepositories", async (req, res) => {
   }
 });
 
+// Manage repository
 app.post("/tool/manageRepository", async (req, res) => {
   try {
     const { repoName, description, options } = req.body;
@@ -284,6 +294,7 @@ app.post("/tool/manageRepository", async (req, res) => {
   }
 });
 
+// Add Collab
 app.post("/tool/addCollaborator", async (req, res) => {
   try {
     const { repoName, collaboratorUsername, permission } = req.body;
@@ -301,6 +312,7 @@ app.post("/tool/addCollaborator", async (req, res) => {
   }
 });
 
+// Remove Collab
 app.post("/tool/removeCollaborator", async (req, res) => {
   try {
     const { repoName, collaboratorUsername } = req.body;
@@ -339,6 +351,11 @@ app.post("/messages", async (req, res) => {
 });
 
 // MAIN SERVER START
-app.listen(3001, () => {
-  console.log("Server is running on http://localhost:3001");
+app.listen(PORT, () => {
+  console.clear();
+  console.log(chalk.green.bold('\n========================================='));
+  console.log(chalk.green.bold('🚀 Server Status: ') + chalk.cyan.bold('Online'));
+  console.log(chalk.green.bold('🌐 Listening on: ') + chalk.yellow.underline(`http://localhost:${PORT}`));
+  console.log(chalk.green.bold('📅 Started at: ') + chalk.magenta(new Date().toLocaleString()));
+  console.log(chalk.green.bold('=========================================\n'));
 });

@@ -115,7 +115,6 @@ export async function manageRepository(repoName, description, options = {}) {
   }
 }
 
-
 // List all repositories for the authenticated user
 export async function listRepositories() {
   try {
@@ -190,6 +189,7 @@ export async function addCollaborator(repoName, collaboratorUsername, permission
     throw new Error("Failed to add collaborator.");
   }
 }
+
 export async function removeCollaborator(repoName, collaboratorUsername) {
   try {
     const owner = process.env.GITHUB_REPO_OWNER;
