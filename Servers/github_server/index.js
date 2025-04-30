@@ -56,6 +56,29 @@ server.tool(
   }
 );
 
+server.tool(
+  "manageRepository",
+  "Manage a GitHub repository: create or update description, retrieve details",
+  {
+    repoName: z.string(),
+    description: z.string().optional(),
+    options: z.object({
+      private: z.boolean().optional(),
+    }).optional(),
+  },
+  async ({ repoName, description, options }) => {
+    const result = await manageRepository(repoName, description, options || {});
+    return {
+      content: [
+        {
+          type: "text",
+          text: `${result.message}\nDetails:\n${JSON.stringify(result.details || {}, null, 2)}`,
+        },
+      ],
+    };
+  }
+);
+
 // List all repositories
 server.tool(
   "listRepositories",
@@ -204,13 +227,20 @@ app.post("/tool/listRepositories", async (req, res) => {
   }
 });
 
-// Optional: combined manage endpoint
 app.post("/tool/manageRepository", async (req, res) => {
   try {
-    const { repoName, description } = req.body;
-    const message = await manageRepository(repoName, description || "");
-    res.json({ message });
+    const { repoName, description, options } = req.body;
+    const result = await manageRepository(repoName, description, options || {});
+    res.json({
+      content: [
+        {
+          type: "text",
+          text: `${result.message}\nDetails:\n${JSON.stringify(result.details || {}, null, 2)}`,
+        },
+      ],
+    });
   } catch (error) {
+    console.error("Error in manageRepository:", error.message);
     res.status(500).send(error.message);
   }
 });

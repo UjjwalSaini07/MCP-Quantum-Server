@@ -57,24 +57,61 @@ export async function createRepository(repoName, description) {
 }
 
 // Manage a repository: check if it exists, and create it if it doesn't.
-export async function manageRepository(repoName, description) {
+export async function manageRepository(repoName, description, options = {}) {
   try {
+    console.log(`Managing repository "${repoName}"...`);
     const exists = await checkRepoExists(repoName);
+
     if (exists) {
-      const message = `Repository "${repoName}" already exists.`;
-      console.log(message);
-      return message;
+      console.log(`Repository "${repoName}" exists.`);
+      
+      // Fetch repository details
+      const repo = gh.getRepo(process.env.GITHUB_REPO_OWNER, repoName);
+      const { data: details } = await repo.getDetails();
+
+      // Check if description needs an update
+      if (description && description !== details.description) {
+        console.log(`Updating description for repository "${repoName}"...`);
+        await repo.updateRepository({ description });
+        console.log(`Description updated to: "${description}"`);
+      }
+
+      // Return existing repository details
+      return {
+        message: `Repository "${repoName}" exists.`,
+        details: {
+          url: details.html_url,
+          description: details.description,
+          stats: {
+            stars: details.stargazers_count,
+            forks: details.forks_count,
+            watchers: details.watchers_count,
+          },
+        },
+      };
     } else {
-      const repoUrl = await createRepository(repoName, description);
-      const successMessage = `Repository created successfully: ${repoUrl}`;
-      console.log(successMessage);
-      return successMessage;
+      console.log(`Repository "${repoName}" does not exist. Creating...`);
+      const isPrivate = options.private || false;
+
+      const user = gh.getUser();
+      const response = await user.createRepo({
+        name: repoName,
+        description,
+        private: isPrivate,
+      });
+
+      console.log(`Repository "${repoName}" created at: ${response.data.html_url}`);
+      return {
+        message: `Repository created successfully.`,
+        url: response.data.html_url,
+      };
     }
   } catch (error) {
     console.error("Error managing repository:", error.message);
     throw error;
   }
 }
+
 
 // List all repositories for the authenticated user
 export async function listRepositories() {
