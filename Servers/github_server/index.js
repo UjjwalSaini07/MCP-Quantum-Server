@@ -3,7 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { z } from "zod";
 import dotenv from "dotenv";
-import { checkRepoExists, createRepository, manageRepository, listRepositories, deleteRepository, viewRepository} from "./main_MCP.tool.js";
+import { checkRepoExists, createRepository, manageRepository, listRepositories, deleteRepository, viewRepository, addCollaborator, removeCollaborator} from "./main_MCP.tool.js";
 
 dotenv.config();
 
@@ -133,7 +133,46 @@ server.tool(
   }
 );
 
+server.tool(
+  "addCollaborator",
+  "Add a collaborator to a GitHub repository",
+  {
+    repoName: z.string(),
+    collaboratorUsername: z.string(),
+    permission: z.string().optional(),
+  },
+  async ({ repoName, collaboratorUsername, permission }) => {
+    const message = await addCollaborator(repoName, collaboratorUsername, permission || "push");
+    return {
+      content: [
+        {
+          type: "text",
+          text: message,
+        },
+      ],
+    };
+  }
+);
 
+server.tool(
+  "removeCollaborator",
+  "Remove a collaborator from a GitHub repository",
+  {
+    repoName: z.string(),
+    collaboratorUsername: z.string(),
+  },
+  async ({ repoName, collaboratorUsername }) => {
+    const message = await removeCollaborator(repoName, collaboratorUsername);
+    return {
+      content: [
+        {
+          type: "text",
+          text: message,
+        },
+      ],
+    };
+  }
+);
 
 // ============================
 // REST API ENDPOINTS FOR CLIENT
@@ -241,6 +280,40 @@ app.post("/tool/manageRepository", async (req, res) => {
     });
   } catch (error) {
     console.error("Error in manageRepository:", error.message);
+    res.status(500).send(error.message);
+  }
+});
+
+app.post("/tool/addCollaborator", async (req, res) => {
+  try {
+    const { repoName, collaboratorUsername, permission } = req.body;
+    const message = await addCollaborator(repoName, collaboratorUsername, permission || "push");
+    res.json({
+      content: [
+        {
+          type: "text",
+          text: message,
+        },
+      ],
+    });
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+});
+
+app.post("/tool/removeCollaborator", async (req, res) => {
+  try {
+    const { repoName, collaboratorUsername } = req.body;
+    const message = await removeCollaborator(repoName, collaboratorUsername);
+    res.json({
+      content: [
+        {
+          type: "text",
+          text: message,
+        },
+      ],
+    });
+  } catch (error) {
     res.status(500).send(error.message);
   }
 });

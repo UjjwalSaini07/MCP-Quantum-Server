@@ -1,4 +1,6 @@
 import GitHub from "github-api";
+import { Octokit } from "@octokit/rest";
+import fetch from "node-fetch";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -7,6 +9,7 @@ dotenv.config();
 function validateEnvVariables() {
   const required = ["GITHUB_TOKEN", "GITHUB_REPO_OWNER"];
   const missing = required.filter((key) => !process.env[key]);
+  const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 
   if (missing.length > 0) {
     throw new Error(`Missing environment variables: ${missing.join(", ")}`);
@@ -157,5 +160,59 @@ export async function viewRepository(repoName) {
     }
     console.error("Error viewing repository:", error);
     throw new Error("Failed to fetch repository details.");
+  }
+}
+
+export async function addCollaborator(repoName, collaboratorUsername, permission = "push") {
+  try {
+    const owner = process.env.GITHUB_REPO_OWNER;
+    const token = process.env.GITHUB_TOKEN;
+
+    const url = `https://api.github.com/repos/${owner}/${repoName}/collaborators/${collaboratorUsername}`;
+    const response = await fetch(url, {
+      method: "PUT",
+      headers: {
+        Authorization: `token ${token}`,
+        Accept: "application/vnd.github.v3+json",
+      },
+      body: JSON.stringify({ permission }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to add collaborator.");
+    }
+
+    console.log(`Collaborator "${collaboratorUsername}" added successfully.`);
+    return `Collaborator "${collaboratorUsername}" added successfully with "${permission}" permission.`;
+  } catch (error) {
+    console.error("Error adding collaborator:", error);
+    throw new Error("Failed to add collaborator.");
+  }
+}
+export async function removeCollaborator(repoName, collaboratorUsername) {
+  try {
+    const owner = process.env.GITHUB_REPO_OWNER;
+    const token = process.env.GITHUB_TOKEN;
+
+    const url = `https://api.github.com/repos/${owner}/${repoName}/collaborators/${collaboratorUsername}`;
+    const response = await fetch(url, {
+      method: "DELETE",
+      headers: {
+        Authorization: `token ${token}`,
+        Accept: "application/vnd.github.v3+json",
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to remove collaborator.");
+    }
+
+    console.log(`Collaborator "${collaboratorUsername}" removed successfully.`);
+    return `Collaborator "${collaboratorUsername}" removed successfully.`;
+  } catch (error) {
+    console.error("Error removing collaborator:", error);
+    throw new Error("Failed to remove collaborator.");
   }
 }
