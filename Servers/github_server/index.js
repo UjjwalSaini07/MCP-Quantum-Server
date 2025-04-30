@@ -4,7 +4,7 @@ import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { z } from "zod";
 import dotenv from "dotenv";
 import chalk from "chalk";
-import { checkRepoExists, createRepository, manageRepository, listRepositories, deleteRepository, viewRepository, addCollaborator, removeCollaborator, getUserDetails} from "./main_MCP.tool.js";
+import { checkRepoExists, createRepository, manageRepository, listRepositories, deleteRepository, viewRepository, addCollaborator, removeCollaborator, getUserDetails, getRepositoryTraffic, setRepositoryVisibility, renameRepository, createIssue} from "./main_MCP.tool.js";
 
 dotenv.config();
 
@@ -180,6 +180,75 @@ server.tool(
   }
 );
 
+// Tool: Get Repository Traffic
+server.tool(
+  "getRepositoryTraffic",
+  "Get traffic data for a GitHub repository",
+  { repoName: z.string() },
+  async ({ repoName }) => {
+    const traffic = await getRepositoryTraffic(repoName);
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: `📊 Repository "${repoName}" Traffic:\n- Views: ${traffic.views}\n- Uniques: ${traffic.uniques}`,
+        },
+      ],
+    };
+  }
+);
+
+
+// Tool: Set Repository Visibility
+server.tool(
+  "setRepositoryVisibility",
+  "Set repository visibility (public or private)",
+  {
+    repoName: z.string(),
+    visibility: z.enum(["public", "private"]),
+  },
+  async ({ repoName, visibility }) => {
+    const msg = await setRepositoryVisibility(repoName, visibility);
+    return {
+      content: [{ type: "text", text: msg }],
+    };
+  }
+);
+
+// Tool: Rename Repository
+server.tool(
+  "renameRepository",
+  "Rename a GitHub repository",
+  {
+    repoName: z.string(),
+    newName: z.string(),
+  },
+  async ({ repoName, newName }) => {
+    const msg = await renameRepository(repoName, newName);
+    return {
+      content: [{ type: "text", text: msg }],
+    };
+  }
+);
+
+// Tool: Create Issue
+server.tool(
+  "createIssue",
+  "Create a new issue in a repository",
+  {
+    repoName: z.string(),
+    issueTitle: z.string(),
+    issueBody: z.string().optional(),
+  },
+  async ({ repoName, issueTitle, issueBody }) => {
+    const msg = await createIssue(repoName, issueTitle, issueBody);
+    return {
+      content: [{ type: "text", text: msg }],
+    };
+  }
+);
+
 // ============================
 // REST API ENDPOINTS FOR CLIENT
 // ============================
@@ -330,6 +399,7 @@ app.post("/tool/removeCollaborator", async (req, res) => {
   }
 });
 
+// Get User Details
 app.post('/tool/getUserDetails', async (req, res) => {
   const { username } = req.body;
   try {
@@ -339,6 +409,60 @@ app.post('/tool/getUserDetails', async (req, res) => {
       message: 'User details fetched successfully.',
       userDetails: userDetails
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Repository Traffic
+app.post('/tool/getRepositoryTraffic', async (req, res) => {
+  const { repoName } = req.body;
+  if (!repoName) return res.status(400).json({ message: 'repoName is required' });
+  try {
+    const traffic = await getRepositoryTraffic(repoName);
+    res.status(200).json({ message: 'Repository traffic fetched.', traffic });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Set Repository Visibility
+app.post('/tool/setRepositoryVisibility', async (req, res) => {
+  const { repoName, visibility } = req.body;
+  if (!repoName || !visibility) {
+    return res.status(400).json({ message: 'repoName and visibility are required' });
+  }
+  try {
+    const msg = await setRepositoryVisibility(repoName, visibility);
+    res.status(200).json({ message: msg });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Rename Repository
+app.post('/tool/renameRepository', async (req, res) => {
+  const { repoName, newName } = req.body;
+  if (!repoName || !newName) {
+    return res.status(400).json({ message: 'repoName and newName are required' });
+  }
+  try {
+    const msg = await renameRepository(repoName, newName);
+    res.status(200).json({ message: msg });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Create Issue
+app.post('/tool/createIssue', async (req, res) => {
+  const { repoName, issueTitle, issueBody } = req.body;
+  if (!repoName || !issueTitle) {
+    return res.status(400).json({ message: 'repoName and issueTitle are required' });
+  }
+  try {
+    const msg = await createIssue(repoName, issueTitle, issueBody);
+    res.status(200).json({ message: msg });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
