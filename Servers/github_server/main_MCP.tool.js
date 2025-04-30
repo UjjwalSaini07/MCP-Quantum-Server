@@ -9,7 +9,13 @@ dotenv.config();
 function validateEnvVariables() {
   const required = ["GITHUB_TOKEN", "GITHUB_REPO_OWNER"];
   const missing = required.filter((key) => !process.env[key]);
-  const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+  const octokit = new Octokit({
+    auth: process.env.GITHUB_TOKEN,
+  });
+  
+  if (!process.env.GITHUB_TOKEN) {
+    throw new Error("GITHUB_TOKEN environment variable is not set. Please set it before running the server.");
+  }
 
   if (missing.length > 0) {
     throw new Error(`Missing environment variables: ${missing.join(", ")}`);
@@ -214,5 +220,27 @@ export async function removeCollaborator(repoName, collaboratorUsername) {
   } catch (error) {
     console.error("Error removing collaborator:", error);
     throw new Error("Failed to remove collaborator.");
+  }
+}
+export async function getUserDetails(username) {
+  try {
+    const response = await fetch(`https://api.github.com/users/${username}`, {
+      headers: {
+        Authorization: `token ${process.env.GITHUB_TOKEN}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`GitHub API request failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    if (!data) {
+      throw new Error("User details not found.");
+    }
+
+    return data;
+  } catch (error) {
+    throw new Error(`Error fetching details for '${username}': ${error.message}`);
   }
 }

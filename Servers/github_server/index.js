@@ -4,7 +4,7 @@ import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { z } from "zod";
 import dotenv from "dotenv";
 import chalk from "chalk";
-import { checkRepoExists, createRepository, manageRepository, listRepositories, deleteRepository, viewRepository, addCollaborator, removeCollaborator} from "./main_MCP.tool.js";
+import { checkRepoExists, createRepository, manageRepository, listRepositories, deleteRepository, viewRepository, addCollaborator, removeCollaborator, getUserDetails} from "./main_MCP.tool.js";
 
 dotenv.config();
 
@@ -327,6 +327,20 @@ app.post("/tool/removeCollaborator", async (req, res) => {
     });
   } catch (error) {
     res.status(500).send(error.message);
+  }
+});
+
+app.post('/tool/getUserDetails', async (req, res) => {
+  const { username } = req.body;
+  try {
+    const userDetails = await getUserDetails(username);
+
+    res.status(200).json({
+      message: 'User details fetched successfully.',
+      userDetails: userDetails
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 });
 
