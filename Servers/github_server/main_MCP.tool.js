@@ -9,7 +9,11 @@ dotenv.config();
 function validateEnvVariables() {
   const required = ["GITHUB_TOKEN", "GITHUB_REPO_OWNER"];
   const missing = required.filter((key) => !process.env[key]);
-  const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+  const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN, });
+  
+  if (!process.env.GITHUB_TOKEN) {
+    throw new Error("GITHUB_TOKEN environment variable is not set. Please set it before running the server.");
+  }
 
   if (missing.length > 0) {
     throw new Error(`Missing environment variables: ${missing.join(", ")}`);
@@ -20,6 +24,13 @@ validateEnvVariables();
 
 // Initialize GitHub Client
 const gh = new GitHub({ token: process.env.GITHUB_TOKEN });
+const GITHUB_API_BASE = 'https://api.github.com';
+const OWNER = process.env.GITHUB_REPO_OWNER;
+const HEADERS = {
+  'Authorization': `Bearer ${process.env.GITHUB_TOKEN}`,
+  'Accept': 'application/vnd.github+json',
+  'User-Agent': 'node-fetch-client'
+};
 
 // Check if a repository exists.
 export async function checkRepoExists(repoName) {
@@ -214,5 +225,118 @@ export async function removeCollaborator(repoName, collaboratorUsername) {
   } catch (error) {
     console.error("Error removing collaborator:", error);
     throw new Error("Failed to remove collaborator.");
+  }
+}
+export async function getUserDetails(username) {
+  try {
+    const response = await fetch(`https://api.github.com/users/${username}`, {
+      headers: {
+        Authorization: `token ${process.env.GITHUB_TOKEN}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`GitHub API request failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    if (!data) {
+      throw new Error("User details not found.");
+    }
+
+    return data;
+  } catch (error) {
+    throw new Error(`Error fetching details for '${username}': ${error.message}`);
+  }
+}
+
+export async function getRepositoryTraffic(repoName) {
+  try {
+    const res = await fetch(`${GITHUB_API_BASE}/repos/${OWNER}/${repoName}/traffic/views`, {
+      headers: {
+        Authorization: `token ${process.env.GITHUB_TOKEN}`,
+        Accept: 'application/vnd.github+json',
+      },
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(errorText);
+    }
+
+    const data = await res.json();
+
+    return {
+      totalCount: data.count,
+      totalUniques: data.uniques,
+      views: data.views.map(view => ({
+        timestamp: view.timestamp,
+        count: view.count,
+        uniques: view.uniques,
+      })),
+    };
+  } catch (error) {
+    throw new Error(`Error fetching traffic for repository '${repoName}': ${error.message}`);
+  }
+}
+
+// Set Repository Visibility
+export async function setRepositoryVisibility(repoName, visibility) {
+  try {
+    const res = await fetch(`${GITHUB_API_BASE}/repos/${OWNER}/${repoName}`, {
+      method: 'PATCH',
+      headers: {
+        ...HEADERS,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        private: visibility === 'private'
+      })
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return `Repository '${repoName}' visibility set to '${visibility}'.`;
+  } catch (error) {
+    throw new Error(`Error setting visibility for repository '${repoName}': ${error.message}`);
+  }
+}
+
+// Rename Repository
+export async function renameRepository(repoName, newName) {
+  try {
+    const res = await fetch(`${GITHUB_API_BASE}/repos/${OWNER}/${repoName}`, {
+      method: 'PATCH',
+      headers: {
+        ...HEADERS,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ name: newName })
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    return `Repository renamed from '${repoName}' to '${data.full_name}'.`;
+  } catch (error) {
+    throw new Error(`Error renaming repository '${repoName}': ${error.message}`);
+  }
+}
+
+// Create Issue
+export async function createIssue(repoName, issueTitle, issueBody = '') {
+  try {
+    const res = await fetch(`${GITHUB_API_BASE}/repos/${OWNER}/${repoName}/issues`, {
+      method: 'POST',
+      headers: {
+        ...HEADERS,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        title: issueTitle,
+        body: issueBody
+      })
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    return `Issue created: ${data.html_url}`;
+  } catch (error) {
+    throw new Error(`Error creating issue in '${repoName}': ${error.message}`);
   }
 }

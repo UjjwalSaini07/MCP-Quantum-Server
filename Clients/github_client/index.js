@@ -3,6 +3,7 @@ import chalk from "chalk";
 import fetch from "node-fetch";
 import fs from "fs";
 import ora from "ora";
+import prompts from "prompts";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -16,6 +17,7 @@ const LOG_FILE = "action_history.log";
  * @param {object} data - Payload to send in the request.
  * @returns {Promise<string>} - Parsed message from the server.
  */
+
 async function callTool(toolName, data) {
   const spinner = ora(`Processing ${toolName}...`).start();
   try {
@@ -32,6 +34,10 @@ async function callTool(toolName, data) {
 
     const result = await response.json();
     spinner.succeed(`${toolName} succeeded.`);
+
+    if (toolName === "getRepositoryTraffic" || toolName === "getUserDetails") {
+      return result;
+    }
     return result.content?.[0]?.text || result.message || "No response content.";
   } catch (error) {
     spinner.fail(`${toolName} failed.`);
@@ -70,21 +76,62 @@ function logAction(action) {
 async function main() {
   console.log(chalk.greenBright("Welcome to the Enhanced MCP Repository Manager!"));
   console.log(chalk.blueBright("Type 'help' for a list of available commands.\n"));
+  let count = 0;
 
   while (true) {
     try {
-      const action = await ask(
-        `Choose an action: ${chalk.yellow(
-          "check | create | manage | list | delete | view | batch | collaborator | help | exit"
-        )}\n> `
-      );
-
-      if (action.toLowerCase() === "exit") {
-        console.log(chalk.green("Goodbye!"));
+      if(count > 0){
+        console.log("");
+        console.log(chalk.gray('='.repeat(40)));
+        console.log(chalk.bgGreenBright.black.bold(` RE-RUN THE PROGRAM: ${count} `));
+        console.log(chalk.gray('='.repeat(40))); ;
+      }
+      count++;
+      const timestamp = chalk.gray(`[${new Date().toLocaleTimeString()}]`);
+      console.log(chalk.bgBlueBright.black.bold(`\n  REPOSITORY MANAGEMENT TOOLS  `));
+      console.log(`${timestamp} ${chalk.greenBright("CLI started")}\n`);
+      const { action } = await prompts({
+        type: "select",
+        name: "action",
+        message: chalk.bold.yellow("Select an action from the list below:"),
+        choices: [
+          { title: chalk.cyanBright("› check         ") + chalk.gray(" View repo details"), value: "check" },
+          { title: chalk.cyanBright("› create        ") + chalk.gray(" Create a new repository"), value: "create" },
+          { title: chalk.cyanBright("› manage        ") + chalk.gray(" Manage settings & collaborators"), value: "manage" },
+          { title: chalk.cyanBright("› list          ") + chalk.gray(" List your repositories"), value: "list" },
+          { title: chalk.cyanBright("› delete        ") + chalk.gray(" Delete a repository"), value: "delete" },
+          { title: chalk.cyanBright("› view          ") + chalk.gray(" View repository content"), value: "view" },
+          { title: chalk.cyanBright("› collaborator  ") + chalk.gray(" Add/remove collaborators"), value: "collaborator" },
+          { title: chalk.cyanBright("› getuser       ") + chalk.gray(" Fetch user details"), value: "getuser" },
+          { title: chalk.cyanBright("› help          ") + chalk.gray(" Show help menu"), value: "help" },
+          { title: chalk.redBright("› exit          ") + chalk.gray(" Exit the tool"), value: "exit" },
+        ],
+        hint: chalk.dim("↑↓ to navigate, Enter to select"),
+      });
+      // const action = await ask(
+      //   `Choose an action: ${chalk.yellow(
+      //     "check | create | manage | list | delete | view | collaborator | getuser | help | exit"
+      //   )}\n> `
+      // );
+      
+      if (!action) {
+        console.log(chalk.red("\n✖ No action selected. Exiting safely...\n"));
         process.exit(0);
       }
+      
+      if (action !== "exit") {
+        console.log(
+          `\n${chalk.green("✔ You selected:")} ${chalk.bold(action)}\n`
+        );
+      }      
 
-      if (action.toLowerCase() === "help") {
+      if (action.toLowerCase() === "exit" || action === "10") {
+        console.log(chalk.bold.greenBright("\n👋 Thank you for using the MCP Repository Manager!"));
+        console.log(chalk.blueBright("🔚 GoodBye... Have a great day!\n"));
+        process.exit(0);
+      }      
+
+      if (action.toLowerCase() === "help" || action === "9") {
         console.log(chalk.magentaBright("\nAvailable Commands:"));
         console.log(chalk.yellow("check") + ": Check if a repository exists.");
         console.log(chalk.yellow("create") + ": Create a new repository.");
@@ -92,13 +139,14 @@ async function main() {
         console.log(chalk.yellow("list") + ": List all repositories.");
         console.log(chalk.yellow("delete") + ": Delete a repository.");
         console.log(chalk.yellow("view") + ": View details of a repository.");
-        console.log(chalk.yellow("batch") + ": Batch create/manage repositories from a file.");
+        // console.log(chalk.yellow("batch") + ": Batch create/manage repositories from a file.");
         console.log(chalk.yellow("collaborator") + ": Manage repository collaborators (add/remove).");
+        console.log(chalk.yellow("getuser") + ": All Info of User using GitHub Username.");
         console.log(chalk.yellow("exit") + ": Exit the application.");
         continue;
       }
 
-      if (action.toLowerCase() === "list") {
+      if (action.toLowerCase() === "list" || action === "4") {
         const msg = await callTool("listRepositories", {});
         console.log(chalk.greenBright("\n📂 Repositories:"));
         console.log(msg);
@@ -106,22 +154,42 @@ async function main() {
         continue;
       }
 
-      if (action.toLowerCase() === "batch") {
-        const filePath = await ask("Enter the path to the batch JSON file:\n> ");
-        if (!fs.existsSync(filePath)) {
-          console.log(chalk.red("❌ File not found."));
-          continue;
-        }
-        const batchData = JSON.parse(fs.readFileSync(filePath, "utf8"));
-        for (const repo of batchData.repositories) {
-          try {
-            const msg = await callTool("createRepository", repo);
-            console.log(chalk.green(`✅ ${repo.repoName}: ${msg}`));
-          } catch (error) {
-            console.log(chalk.red(`❌ ${repo.repoName}: ${error.message}`));
+      // if (action.toLowerCase() === "batch" || action === "7") {
+      //   const filePath = await ask("Enter the path to the batch JSON file:\n> ");
+      //   if (!fs.existsSync(filePath)) {
+      //     console.log(chalk.red("❌ File not found."));
+      //     continue;
+      //   }
+      //   const batchData = JSON.parse(fs.readFileSync(filePath, "utf8"));
+      //   for (const repo of batchData.repositories) {
+      //     try {
+      //       const msg = await callTool("createRepository", repo);
+      //       console.log(chalk.green(`✅ ${repo.repoName}: ${msg}`));
+      //     } catch (error) {
+      //       console.log(chalk.red(`❌ ${repo.repoName}: ${error.message}`));
+      //     }
+      //   }
+      //   logAction(`Processed batch file: ${filePath}`);
+      //   continue;
+      // }
+
+      if (action.toLowerCase() === "getuser" || action === "8") {
+        const username = await ask("Enter username:\n> ");
+        
+        try {
+          const response = await callTool("getUserDetails", { username });
+          // console.log("Full Response:", response);
+          if (response && response.userDetails) {
+            console.log(chalk.greenBright("\n👤 User Details:"));
+            console.log(response.userDetails);
+          } else {
+            console.log(chalk.red("❌ No user details found."));
           }
+          logAction(`Fetched details for '${username}'`);
+        } catch (error) {
+          console.error(chalk.red("❌ Error fetching user details: "), error.message);
         }
-        logAction(`Processed batch file: ${filePath}`);
+      
         continue;
       }
 
@@ -131,7 +199,7 @@ async function main() {
         continue;
       }
 
-      if (action.toLowerCase() === "delete") {
+      if (action.toLowerCase() === "delete" || action === "5") {
         const confirmation = await ask(`Are you sure you want to delete ${repoName}? (yes/no)\n> `);
         if (confirmation.toLowerCase() === "yes") {
           const msg = await callTool("deleteRepository", { repoName });
@@ -143,7 +211,7 @@ async function main() {
         continue;
       }
 
-      if (action.toLowerCase() === "view") {
+      if (action.toLowerCase() === "view" || action === "6") {
         const msg = await callTool("viewRepository", { repoName });
         console.log(chalk.greenBright("\n📄 Repository Details:"));
         console.log(msg);
@@ -152,11 +220,11 @@ async function main() {
       }
 
       let description = "";
-      if (action === "create" || action === "manage") {
+      if (action === "create" || action === "2") {
         description = await ask("Enter description (optional):\n> ");
       }
 
-      if (action.toLowerCase() === "collaborator") {
+      if (action.toLowerCase() === "collaborator" || action === "7") {
         const collaboratorAction = await ask(
           `Do you want to add or remove a collaborator? (add/remove)\n> `
         );
@@ -193,13 +261,15 @@ async function main() {
       }
 
       switch (action.toLowerCase()) {
-        case "check": {
+        case "check" :
+          case "1": {
           const msg = await callTool("checkRepoExists", { repoName });
           console.log(chalk.green("\n✅ " + msg));
           logAction(`Checked repository: ${repoName}`);
           break;
         }
-        case "create": {
+        case "create" :
+          case "2": {
           const msg = await callTool("createRepository", {
             repoName,
             description,
@@ -208,15 +278,110 @@ async function main() {
           logAction(`Created repository: ${repoName}`);
           break;
         }
-        case "manage": {
-          const msg = await callTool("manageRepository", {
-            repoName,
-            description,
-          });
-          console.log(chalk.green("\n✅ " + msg));
-          logAction(`Managed repository: ${repoName}`);
-          break;
-        }
+        case "manage":
+          case "3": {
+            const { action } = await prompts({
+              type: "select",
+              name: "action",
+              message: "Select repository management action",
+              choices: [
+                { title: "Get Repository Traffic", value: "getRepositoryTraffic" },
+                { title: "Set Repository Visibility", value: "setRepositoryVisibility" },
+                { title: "Rename Repository", value: "renameRepository" },
+                { title: "Create Issue", value: "createIssue" },
+              ],
+            });
+
+            const { repoName } = await prompts({
+              type: "text",
+              name: "repoName",
+              message: "Repository name:",
+              validate: (value) => (value ? true : "Repository name is required"),
+            });
+
+            let data = { repoName };
+            let toolName = action;
+
+            switch (action) {
+              case "setRepositoryVisibility": {
+                const { visibility } = await prompts({
+                  type: "select",
+                  name: "visibility",
+                  message: "Set visibility to:",
+                  choices: [
+                    { title: "Public", value: "public" },
+                    { title: "Private", value: "private" },
+                  ],
+                });
+                data.visibility = visibility;
+                break;
+              }
+
+              case "renameRepository": {
+                const { newName } = await prompts({
+                  type: "text",
+                  name: "newName",
+                  message: "New repository name:",
+                  validate: (value) => (value ? true : "New name is required"),
+                });
+                data.newName = newName;
+                break;
+              }
+
+              case "createIssue": {
+                const { issueTitle, issueBody } = await prompts([
+                  {
+                    type: "text",
+                    name: "issueTitle",
+                    message: "Issue title:",
+                    validate: (value) => (value ? true : "Issue title is required"),
+                  },
+                  {
+                    type: "text",
+                    name: "issueBody",
+                    message: "Issue body (optional):",
+                  },
+                ]);
+                data.issueTitle = issueTitle;
+                if (issueBody) data.issueBody = issueBody;
+                break;
+              }
+            }
+
+            try {
+              if (toolName === "getRepositoryTraffic") {
+                const result = await callTool(toolName, data);
+                const traffic = result?.traffic;
+              
+                if (!traffic || !traffic.views) {
+                  console.log(chalk.red("❌ No traffic data available."));
+                } else {
+                  console.log(chalk.bold.blue("\n📊 Repository Traffic:"));
+                  console.log(chalk.greenBright(`Total Views: ${traffic.totalCount}`));
+                  console.log(chalk.green(`Unique Visitors: ${traffic.totalUniques}`));
+
+                  console.log(chalk.yellowBright("\nDaily Breakdown:"));
+                  traffic.views.forEach(({ timestamp, count, uniques }) => {
+                    console.log(
+                      chalk.white(`- ${timestamp}: `) + 
+                      chalk.greenBright(`${count} views, `) + 
+                      chalk.red(`${uniques} unique visitors`)
+                    );
+                  });
+                }
+              
+                logAction(`Viewed traffic for repository: ${repoName}`);
+              } else {
+                const msg = await callTool(toolName, data);
+                console.log(chalk.green("\n✅ " + msg));
+                logAction(`Ran '${toolName}' on '${repoName}'`);
+              }
+            } catch (error) {
+              console.error(chalk.red("❌ " + error.message));
+            }
+            break;
+          }
+
         default:
           console.log(chalk.red("❌ Invalid Re-Try action."));
       }
