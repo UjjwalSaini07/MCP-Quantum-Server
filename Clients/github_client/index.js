@@ -17,6 +17,7 @@ const LOG_FILE = "action_history.log";
  * @param {object} data - Payload to send in the request.
  * @returns {Promise<string>} - Parsed message from the server.
  */
+
 async function callTool(toolName, data) {
   const spinner = ora(`Processing ${toolName}...`).start();
   try {
@@ -33,8 +34,11 @@ async function callTool(toolName, data) {
 
     const result = await response.json();
     spinner.succeed(`${toolName} succeeded.`);
+
+    if (toolName === "getRepositoryTraffic" || toolName === "getUserDetails") {
+      return result;
+    }
     return result.content?.[0]?.text || result.message || "No response content.";
-    // return result;
   } catch (error) {
     spinner.fail(`${toolName} failed.`);
     throw new Error(`Error in ${toolName}: ${error.message}`);
@@ -77,16 +81,17 @@ async function main() {
     try {
       const action = await ask(
         `Choose an action: ${chalk.yellow(
-          "check | create | manage | list | delete | view | batch | collaborator | getuser | help | exit"
+          "check | create | manage | list | delete | view | collaborator | getuser | help | exit"
         )}\n> `
       );
 
-      if (action.toLowerCase() === "exit" || action === "11") {
-        console.log(chalk.green("Goodbye!"));
+      if (action.toLowerCase() === "exit" || action === "10") {
+        console.log(chalk.bold.greenBright("\n👋 Thank you for using the MCP Repository Manager!"));
+        console.log(chalk.blueBright("🔚 GoodBye... Have a great day!\n"));
         process.exit(0);
-      }
+      }      
 
-      if (action.toLowerCase() === "help" || action === "10") {
+      if (action.toLowerCase() === "help" || action === "9") {
         console.log(chalk.magentaBright("\nAvailable Commands:"));
         console.log(chalk.yellow("check") + ": Check if a repository exists.");
         console.log(chalk.yellow("create") + ": Create a new repository.");
@@ -94,7 +99,7 @@ async function main() {
         console.log(chalk.yellow("list") + ": List all repositories.");
         console.log(chalk.yellow("delete") + ": Delete a repository.");
         console.log(chalk.yellow("view") + ": View details of a repository.");
-        console.log(chalk.yellow("batch") + ": Batch create/manage repositories from a file.");
+        // console.log(chalk.yellow("batch") + ": Batch create/manage repositories from a file.");
         console.log(chalk.yellow("collaborator") + ": Manage repository collaborators (add/remove).");
         console.log(chalk.yellow("getuser") + ": All Info of User using GitHub Username.");
         console.log(chalk.yellow("exit") + ": Exit the application.");
@@ -109,26 +114,26 @@ async function main() {
         continue;
       }
 
-      if (action.toLowerCase() === "batch" || action === "7") {
-        const filePath = await ask("Enter the path to the batch JSON file:\n> ");
-        if (!fs.existsSync(filePath)) {
-          console.log(chalk.red("❌ File not found."));
-          continue;
-        }
-        const batchData = JSON.parse(fs.readFileSync(filePath, "utf8"));
-        for (const repo of batchData.repositories) {
-          try {
-            const msg = await callTool("createRepository", repo);
-            console.log(chalk.green(`✅ ${repo.repoName}: ${msg}`));
-          } catch (error) {
-            console.log(chalk.red(`❌ ${repo.repoName}: ${error.message}`));
-          }
-        }
-        logAction(`Processed batch file: ${filePath}`);
-        continue;
-      }
+      // if (action.toLowerCase() === "batch" || action === "7") {
+      //   const filePath = await ask("Enter the path to the batch JSON file:\n> ");
+      //   if (!fs.existsSync(filePath)) {
+      //     console.log(chalk.red("❌ File not found."));
+      //     continue;
+      //   }
+      //   const batchData = JSON.parse(fs.readFileSync(filePath, "utf8"));
+      //   for (const repo of batchData.repositories) {
+      //     try {
+      //       const msg = await callTool("createRepository", repo);
+      //       console.log(chalk.green(`✅ ${repo.repoName}: ${msg}`));
+      //     } catch (error) {
+      //       console.log(chalk.red(`❌ ${repo.repoName}: ${error.message}`));
+      //     }
+      //   }
+      //   logAction(`Processed batch file: ${filePath}`);
+      //   continue;
+      // }
 
-      if (action.toLowerCase() === "getuser" || action === "9") {
+      if (action.toLowerCase() === "getuser" || action === "8") {
         const username = await ask("Enter username:\n> ");
         
         try {
@@ -175,11 +180,11 @@ async function main() {
       }
 
       let description = "";
-      if (action === "create" || action === "manage" || action === "2" || action === "3") {
+      if (action === "create" || action === "2") {
         description = await ask("Enter description (optional):\n> ");
       }
 
-      if (action.toLowerCase() === "collaborator" || action === "8") {
+      if (action.toLowerCase() === "collaborator" || action === "7") {
         const collaboratorAction = await ask(
           `Do you want to add or remove a collaborator? (add/remove)\n> `
         );
@@ -304,15 +309,39 @@ async function main() {
             }
 
             try {
-              const msg = await callTool(toolName, data);
-              console.log(chalk.green("\n✅ " + msg));
-              logAction(`Ran '${toolName}' on '${repoName}'`);
+              if (toolName === "getRepositoryTraffic") {
+                const result = await callTool(toolName, data);
+                const traffic = result?.traffic;
+              
+                if (!traffic || !traffic.views) {
+                  console.log(chalk.red("❌ No traffic data available."));
+                } else {
+                  console.log(chalk.bold.blue("\n📊 Repository Traffic:"));
+                  console.log(chalk.greenBright(`Total Views: ${traffic.totalCount}`));
+                  console.log(chalk.green(`Unique Visitors: ${traffic.totalUniques}`));
+
+                  console.log(chalk.yellowBright("\nDaily Breakdown:"));
+                  traffic.views.forEach(({ timestamp, count, uniques }) => {
+                    console.log(
+                      chalk.white(`- ${timestamp}: `) + 
+                      chalk.greenBright(`${count} views, `) + 
+                      chalk.red(`${uniques} unique visitors`)
+                    );
+                  });
+                }
+              
+                logAction(`Viewed traffic for repository: ${repoName}`);
+              } else {
+                const msg = await callTool(toolName, data);
+                console.log(chalk.green("\n✅ " + msg));
+                logAction(`Ran '${toolName}' on '${repoName}'`);
+              }
             } catch (error) {
               console.error(chalk.red("❌ " + error.message));
             }
-
             break;
           }
+
         default:
           console.log(chalk.red("❌ Invalid Re-Try action."));
       }
