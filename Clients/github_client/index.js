@@ -1,8 +1,14 @@
 import readline from "readline";
 import chalk from "chalk";
 import fetch from "node-fetch";
+import fs from "fs";
+import ora from "ora";
+import dotenv from "dotenv";
 
-const MCP_SERVER_URL = "http://localhost:3001";
+dotenv.config();
+
+const MCP_SERVER_URL = process.env.MCP_SERVER_URL || "http://localhost:3001";
+const LOG_FILE = "action_history.log"; // File to store logs
 
 /**
  * Send a POST request to a specific tool endpoint on the MCP server.
@@ -11,6 +17,7 @@ const MCP_SERVER_URL = "http://localhost:3001";
  * @returns {Promise<string>} - Parsed message from the server.
  */
 async function callTool(toolName, data) {
+  const spinner = ora(`Processing ${toolName}...`).start();
   try {
     const response = await fetch(`${MCP_SERVER_URL}/tool/${toolName}`, {
       method: "POST",
@@ -24,8 +31,10 @@ async function callTool(toolName, data) {
     }
 
     const result = await response.json();
+    spinner.succeed(`${toolName} succeeded.`);
     return result.content?.[0]?.text || result.message || "No response content.";
   } catch (error) {
+    spinner.fail(`${toolName} failed.`);
     throw new Error(`Error in ${toolName}: ${error.message}`);
   }
 }
@@ -48,14 +57,26 @@ function ask(question) {
   );
 }
 
+/**
+ * Log an action to a file.
+ * @param {string} action - The action performed.
+ */
+function logAction(action) {
+  const timestamp = new Date().toISOString();
+  const logEntry = `[${timestamp}] ${action}\n`;
+  fs.appendFileSync(LOG_FILE, logEntry, "utf8");
+}
+
 async function main() {
-  console.log(chalk.greenBright("Welcome to the MCP Repository Manager!"));
+  console.log(chalk.greenBright("Welcome to the Enhanced MCP Repository Manager!"));
   console.log(chalk.blueBright("Type 'help' for a list of available commands.\n"));
 
   while (true) {
     try {
       const action = await ask(
-        `Choose an action: ${chalk.yellow("check | create | manage | list | help | exit")}\n> `
+        `Choose an action: ${chalk.yellow(
+          "check | create | manage | list | delete | view | batch | help | exit"
+        )}\n> `
       );
 
       if (action.toLowerCase() === "exit") {
@@ -69,6 +90,9 @@ async function main() {
         console.log(chalk.yellow("create") + ": Create a new repository.");
         console.log(chalk.yellow("manage") + ": Manage an existing repository.");
         console.log(chalk.yellow("list") + ": List all repositories.");
+        console.log(chalk.yellow("delete") + ": Delete a repository.");
+        console.log(chalk.yellow("view") + ": View details of a repository.");
+        console.log(chalk.yellow("batch") + ": Batch create/manage repositories from a file.");
         console.log(chalk.yellow("exit") + ": Exit the application.");
         continue;
       }
@@ -77,12 +101,52 @@ async function main() {
         const msg = await callTool("listRepositories", {});
         console.log(chalk.greenBright("\n📂 Repositories:"));
         console.log(msg);
+        logAction("Listed all repositories.");
+        continue;
+      }
+
+      if (action.toLowerCase() === "batch") {
+        const filePath = await ask("Enter the path to the batch JSON file:\n> ");
+        if (!fs.existsSync(filePath)) {
+          console.log(chalk.red("❌ File not found."));
+          continue;
+        }
+        const batchData = JSON.parse(fs.readFileSync(filePath, "utf8"));
+        for (const repo of batchData.repositories) {
+          try {
+            const msg = await callTool("createRepository", repo);
+            console.log(chalk.green(`✅ ${repo.repoName}: ${msg}`));
+          } catch (error) {
+            console.log(chalk.red(`❌ ${repo.repoName}: ${error.message}`));
+          }
+        }
+        logAction(`Processed batch file: ${filePath}`);
         continue;
       }
 
       const repoName = await ask("Enter repository name:\n> ");
       if (!repoName) {
         console.log(chalk.red("❌ Repository name cannot be empty."));
+        continue;
+      }
+
+      if (action.toLowerCase() === "delete") {
+        const confirmation = await ask(`Are you sure you want to delete ${repoName}? (yes/no)\n> `);
+        if (confirmation.toLowerCase() === "yes") {
+          const msg = await callTool("deleteRepository", { repoName });
+          console.log(chalk.green("\n✅ " + msg));
+          logAction(`Deleted repository: ${repoName}`);
+        } else {
+          console.log(chalk.yellow("❌ Deletion cancelled."));
+        }
+        continue;
+      }
+
+      if (action.toLowerCase() === "view") {
+        const msg = await callTool("viewRepository", { repoName });
+        console.log(chalk.greenBright("\n📄 Repository Details:"));
+        console.log(msg);
+        logAction(`Viewed repository: ${repoName}`);
         continue;
       }
 
@@ -95,6 +159,7 @@ async function main() {
         case "check": {
           const msg = await callTool("checkRepoExists", { repoName });
           console.log(chalk.green("\n✅ " + msg));
+          logAction(`Checked repository: ${repoName}`);
           break;
         }
         case "create": {
@@ -103,6 +168,7 @@ async function main() {
             description,
           });
           console.log(chalk.green("\n✅ " + msg));
+          logAction(`Created repository: ${repoName}`);
           break;
         }
         case "manage": {
@@ -111,6 +177,7 @@ async function main() {
             description,
           });
           console.log(chalk.green("\n✅ " + msg));
+          logAction(`Managed repository: ${repoName}`);
           break;
         }
         default:
