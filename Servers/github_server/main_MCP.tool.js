@@ -258,15 +258,22 @@ export async function getRepositoryTraffic(repoName) {
         Accept: 'application/vnd.github+json',
       },
     });
+
     if (!res.ok) {
       const errorText = await res.text();
       throw new Error(errorText);
     }
+
     const data = await res.json();
+
     return {
-      views: data.views,
-      counts:data.count,
-      uniques: data.uniques,
+      totalCount: data.count,
+      totalUniques: data.uniques,
+      views: data.views.map(view => ({
+        timestamp: view.timestamp,
+        count: view.count,
+        uniques: view.uniques,
+      })),
     };
   } catch (error) {
     throw new Error(`Error fetching traffic for repository '${repoName}': ${error.message}`);
