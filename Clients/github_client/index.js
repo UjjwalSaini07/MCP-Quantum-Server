@@ -75,7 +75,7 @@ async function main() {
     try {
       const action = await ask(
         `Choose an action: ${chalk.yellow(
-          "check | create | manage | list | delete | view | batch | help | exit"
+          "check | create | manage | list | delete | view | batch | collaborator | help | exit"
         )}\n> `
       );
 
@@ -93,6 +93,7 @@ async function main() {
         console.log(chalk.yellow("delete") + ": Delete a repository.");
         console.log(chalk.yellow("view") + ": View details of a repository.");
         console.log(chalk.yellow("batch") + ": Batch create/manage repositories from a file.");
+        console.log(chalk.yellow("collaborator") + ": Manage repository collaborators (add/remove).");
         console.log(chalk.yellow("exit") + ": Exit the application.");
         continue;
       }
@@ -154,6 +155,42 @@ async function main() {
       if (action === "create" || action === "manage") {
         description = await ask("Enter description (optional):\n> ");
       }
+
+      if (action.toLowerCase() === "collaborator") {
+        const collaboratorAction = await ask(
+          `Do you want to add or remove a collaborator? (add/remove)\n> `
+        );
+      
+        if (!["add", "remove"].includes(collaboratorAction.toLowerCase())) {
+          console.log(chalk.red("❌ Invalid action. Please choose 'add' or 'remove'."));
+          continue;
+        }
+      
+        const collaboratorUsername = await ask(
+          "Enter the username of the collaborator:\n> "
+        );
+      
+        if (collaboratorAction.toLowerCase() === "add") {
+          const permission = await ask(
+            "Enter the permission level (pull/push/admin, default is push):\n> "
+          );
+          const msg = await callTool("addCollaborator", {
+            repoName,
+            collaboratorUsername,
+            permission: permission || "push",
+          });
+          console.log(chalk.green("\n✅ " + msg));
+          logAction(`Added collaborator: ${collaboratorUsername} to ${repoName}`);
+        } else if (collaboratorAction.toLowerCase() === "remove") {
+          const msg = await callTool("removeCollaborator", {
+            repoName,
+            collaboratorUsername,
+          });
+          console.log(chalk.green("\n✅ " + msg));
+          logAction(`Removed collaborator: ${collaboratorUsername} from ${repoName}`);
+        }
+        continue;
+      }      
 
       switch (action.toLowerCase()) {
         case "check": {
