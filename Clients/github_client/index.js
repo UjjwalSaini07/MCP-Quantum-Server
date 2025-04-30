@@ -76,14 +76,54 @@ function logAction(action) {
 async function main() {
   console.log(chalk.greenBright("Welcome to the Enhanced MCP Repository Manager!"));
   console.log(chalk.blueBright("Type 'help' for a list of available commands.\n"));
+  let count = 0;
 
   while (true) {
     try {
-      const action = await ask(
-        `Choose an action: ${chalk.yellow(
-          "check | create | manage | list | delete | view | collaborator | getuser | help | exit"
-        )}\n> `
-      );
+      if(count > 0){
+        console.log("");
+        console.log(chalk.gray('='.repeat(40)));
+        console.log(chalk.bgGreenBright.black.bold(` RE-RUN THE PROGRAM: ${count} `));
+        console.log(chalk.gray('='.repeat(40))); ;
+      }
+      count++;
+      const timestamp = chalk.gray(`[${new Date().toLocaleTimeString()}]`);
+      console.log(chalk.bgBlueBright.black.bold(`\n  REPOSITORY MANAGEMENT TOOLS  `));
+      console.log(`${timestamp} ${chalk.greenBright("CLI started")}\n`);
+      const { action } = await prompts({
+        type: "select",
+        name: "action",
+        message: chalk.bold.yellow("Select an action from the list below:"),
+        choices: [
+          { title: chalk.cyanBright("› check         ") + chalk.gray(" View repo details"), value: "check" },
+          { title: chalk.cyanBright("› create        ") + chalk.gray(" Create a new repository"), value: "create" },
+          { title: chalk.cyanBright("› manage        ") + chalk.gray(" Manage settings & collaborators"), value: "manage" },
+          { title: chalk.cyanBright("› list          ") + chalk.gray(" List your repositories"), value: "list" },
+          { title: chalk.cyanBright("› delete        ") + chalk.gray(" Delete a repository"), value: "delete" },
+          { title: chalk.cyanBright("› view          ") + chalk.gray(" View repository content"), value: "view" },
+          { title: chalk.cyanBright("› collaborator  ") + chalk.gray(" Add/remove collaborators"), value: "collaborator" },
+          { title: chalk.cyanBright("› getuser       ") + chalk.gray(" Fetch user details"), value: "getuser" },
+          { title: chalk.cyanBright("› help          ") + chalk.gray(" Show help menu"), value: "help" },
+          { title: chalk.redBright("› exit          ") + chalk.gray(" Exit the tool"), value: "exit" },
+        ],
+        hint: chalk.dim("↑↓ to navigate, Enter to select"),
+      });
+      // const action = await ask(
+      //   `Choose an action: ${chalk.yellow(
+      //     "check | create | manage | list | delete | view | collaborator | getuser | help | exit"
+      //   )}\n> `
+      // );
+      
+      if (!action) {
+        console.log(chalk.red("\n✖ No action selected. Exiting safely...\n"));
+        process.exit(0);
+      }
+      
+      if (action !== "exit") {
+        console.log(
+          `\n${chalk.green("✔ You selected:")} ${chalk.bold(action)}\n`
+        );
+      }      
 
       if (action.toLowerCase() === "exit" || action === "10") {
         console.log(chalk.bold.greenBright("\n👋 Thank you for using the MCP Repository Manager!"));
