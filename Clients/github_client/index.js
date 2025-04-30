@@ -3,6 +3,7 @@ import chalk from "chalk";
 import fetch from "node-fetch";
 import fs from "fs";
 import ora from "ora";
+import prompts from "prompts";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -32,7 +33,8 @@ async function callTool(toolName, data) {
 
     const result = await response.json();
     spinner.succeed(`${toolName} succeeded.`);
-    return result.content?.[0]?.text || result || result.message || "No response content.";
+    return result.content?.[0]?.text || result.message || "No response content.";
+    // return result;
   } catch (error) {
     spinner.fail(`${toolName} failed.`);
     throw new Error(`Error in ${toolName}: ${error.message}`);
@@ -231,16 +233,86 @@ async function main() {
           logAction(`Created repository: ${repoName}`);
           break;
         }
-        case "manage" :
+        case "manage":
           case "3": {
-          const msg = await callTool("manageRepository", {
-            repoName,
-            description,
-          });
-          console.log(chalk.green("\n✅ " + msg));
-          logAction(`Managed repository: ${repoName}`);
-          break;
-        }
+            const { action } = await prompts({
+              type: "select",
+              name: "action",
+              message: "Select repository management action",
+              choices: [
+                { title: "Get Repository Traffic", value: "getRepositoryTraffic" },
+                { title: "Set Repository Visibility", value: "setRepositoryVisibility" },
+                { title: "Rename Repository", value: "renameRepository" },
+                { title: "Create Issue", value: "createIssue" },
+              ],
+            });
+
+            const { repoName } = await prompts({
+              type: "text",
+              name: "repoName",
+              message: "Repository name:",
+              validate: (value) => (value ? true : "Repository name is required"),
+            });
+
+            let data = { repoName };
+            let toolName = action;
+
+            switch (action) {
+              case "setRepositoryVisibility": {
+                const { visibility } = await prompts({
+                  type: "select",
+                  name: "visibility",
+                  message: "Set visibility to:",
+                  choices: [
+                    { title: "Public", value: "public" },
+                    { title: "Private", value: "private" },
+                  ],
+                });
+                data.visibility = visibility;
+                break;
+              }
+
+              case "renameRepository": {
+                const { newName } = await prompts({
+                  type: "text",
+                  name: "newName",
+                  message: "New repository name:",
+                  validate: (value) => (value ? true : "New name is required"),
+                });
+                data.newName = newName;
+                break;
+              }
+
+              case "createIssue": {
+                const { issueTitle, issueBody } = await prompts([
+                  {
+                    type: "text",
+                    name: "issueTitle",
+                    message: "Issue title:",
+                    validate: (value) => (value ? true : "Issue title is required"),
+                  },
+                  {
+                    type: "text",
+                    name: "issueBody",
+                    message: "Issue body (optional):",
+                  },
+                ]);
+                data.issueTitle = issueTitle;
+                if (issueBody) data.issueBody = issueBody;
+                break;
+              }
+            }
+
+            try {
+              const msg = await callTool(toolName, data);
+              console.log(chalk.green("\n✅ " + msg));
+              logAction(`Ran '${toolName}' on '${repoName}'`);
+            } catch (error) {
+              console.error(chalk.red("❌ " + error.message));
+            }
+
+            break;
+          }
         default:
           console.log(chalk.red("❌ Invalid Re-Try action."));
       }
