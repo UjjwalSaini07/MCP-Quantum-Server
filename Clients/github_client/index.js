@@ -8,7 +8,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const MCP_SERVER_URL = process.env.MCP_SERVER_URL || "http://localhost:3001";
-const LOG_FILE = "action_history.log"; // File to store logs
+const LOG_FILE = "action_history.log";
 
 /**
  * Send a POST request to a specific tool endpoint on the MCP server.
@@ -190,7 +190,7 @@ async function main() {
           logAction(`Removed collaborator: ${collaboratorUsername} from ${repoName}`);
         }
         continue;
-      }      
+      }
 
       switch (action.toLowerCase()) {
         case "check": {
@@ -218,7 +218,7 @@ async function main() {
           break;
         }
         default:
-          console.log(chalk.red("❌ Invalid action."));
+          console.log(chalk.red("❌ Invalid Re-Try action."));
       }
     } catch (error) {
       console.error(chalk.red("❌ Error: "), error.message);
