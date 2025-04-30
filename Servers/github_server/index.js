@@ -199,7 +199,6 @@ server.tool(
   }
 );
 
-
 // Tool: Set Repository Visibility
 server.tool(
   "setRepositoryVisibility",
@@ -417,14 +416,23 @@ app.post('/tool/getUserDetails', async (req, res) => {
 // Repository Traffic
 app.post('/tool/getRepositoryTraffic', async (req, res) => {
   const { repoName } = req.body;
-  if (!repoName) return res.status(400).json({ message: 'repoName is required' });
+  console.log('Incoming repoName:', repoName); // Add this
+
+  if (!repoName) {
+    return res.status(400).json({ message: 'repoName is required' });
+  }
+
   try {
     const traffic = await getRepositoryTraffic(repoName);
+    console.log('Fetched traffic:', traffic); // And this
+
     res.status(200).json({ message: 'Repository traffic fetched.', traffic });
   } catch (error) {
+    console.error('Error fetching traffic:', error); // And this
     res.status(500).json({ message: error.message });
   }
 });
+
 
 // Set Repository Visibility
 app.post('/tool/setRepositoryVisibility', async (req, res) => {

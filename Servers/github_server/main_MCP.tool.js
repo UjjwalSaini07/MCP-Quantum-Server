@@ -255,12 +255,17 @@ export async function getRepositoryTraffic(repoName) {
     const res = await fetch(`${GITHUB_API_BASE}/repos/${OWNER}/${repoName}/traffic/views`, {
       headers: {
         Authorization: `token ${process.env.GITHUB_TOKEN}`,
+        Accept: 'application/vnd.github+json',
       },
     });
-    if (!res.ok) throw new Error(await res.text());
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(errorText);
+    }
     const data = await res.json();
     return {
       views: data.views,
+      counts:data.count,
       uniques: data.uniques,
     };
   } catch (error) {
