@@ -32,7 +32,7 @@ async function callTool(toolName, data) {
 
     const result = await response.json();
     spinner.succeed(`${toolName} succeeded.`);
-    return result.content?.[0]?.text || result.message || "No response content.";
+    return result.content?.[0]?.text || result || result.message || "No response content.";
   } catch (error) {
     spinner.fail(`${toolName} failed.`);
     throw new Error(`Error in ${toolName}: ${error.message}`);
@@ -75,7 +75,7 @@ async function main() {
     try {
       const action = await ask(
         `Choose an action: ${chalk.yellow(
-          "check | create | manage | list | delete | view | batch | collaborator | help | exit"
+          "check | create | manage | list | delete | view | batch | collaborator | getuser | help | exit"
         )}\n> `
       );
 
@@ -94,6 +94,7 @@ async function main() {
         console.log(chalk.yellow("view") + ": View details of a repository.");
         console.log(chalk.yellow("batch") + ": Batch create/manage repositories from a file.");
         console.log(chalk.yellow("collaborator") + ": Manage repository collaborators (add/remove).");
+        console.log(chalk.yellow("getuser") + ": All Info of User using GitHub Username.");
         console.log(chalk.yellow("exit") + ": Exit the application.");
         continue;
       }
@@ -122,6 +123,26 @@ async function main() {
           }
         }
         logAction(`Processed batch file: ${filePath}`);
+        continue;
+      }
+
+      if (action.toLowerCase() === "getuser") {
+        const username = await ask("Enter username:\n> ");
+        
+        try {
+          const response = await callTool("getUserDetails", { username });
+          // console.log("Full Response:", response);
+          if (response && response.userDetails) {
+            console.log(chalk.greenBright("\n👤 User Details:"));
+            console.log(response.userDetails);
+          } else {
+            console.log(chalk.red("❌ No user details found."));
+          }
+          logAction(`Fetched details for '${username}'`);
+        } catch (error) {
+          console.error(chalk.red("❌ Error fetching user details: "), error.message);
+        }
+      
         continue;
       }
 
