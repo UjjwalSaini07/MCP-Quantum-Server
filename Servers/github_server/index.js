@@ -3,7 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { z } from "zod";
 import dotenv from "dotenv";
-import { checkRepoExists, createRepository, manageRepository, } from "./main_MCP.tool.js";
+import { checkRepoExists, createRepository, manageRepository, listRepositories, deleteRepository, viewRepository} from "./main_MCP.tool.js";
 
 dotenv.config();
 
@@ -56,6 +56,62 @@ server.tool(
   }
 );
 
+// List all repositories
+server.tool(
+  "listRepositories",
+  "List all GitHub repositories for the user",
+  {},
+  async () => {
+    const repos = await listRepositories();
+    return {
+      content: [
+        {
+          type: "text",
+          text: `Repositories:\n${repos.join("\n")}`,
+        },
+      ],
+    };
+  }
+);
+
+// Delete repository
+server.tool(
+  "deleteRepository",
+  "Delete a GitHub repository",
+  { repoName: z.string() },
+  async ({ repoName }) => {
+    const message = await deleteRepository(repoName);
+    return {
+      content: [
+        {
+          type: "text",
+          text: message,
+        },
+      ],
+    };
+  }
+);
+
+// View repository details
+server.tool(
+  "viewRepository",
+  "View details of a GitHub repository",
+  { repoName: z.string() },
+  async ({ repoName }) => {
+    const details = await viewRepository(repoName);
+    return {
+      content: [
+        {
+          type: "text",
+          text: `Details for repository "${repoName}":\n${JSON.stringify(details, null, 2)}`,
+        },
+      ],
+    };
+  }
+);
+
+
+
 // ============================
 // REST API ENDPOINTS FOR CLIENT
 // ============================
@@ -90,6 +146,56 @@ app.post("/tool/createRepository", async (req, res) => {
         {
           type: "text",
           text: `Repository created at: ${repoUrl}`,
+        },
+      ],
+    });
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+});
+
+app.post("/tool/viewRepository", async (req, res) => {
+  try {
+    const { repoName } = req.body;
+    const details = await viewRepository(repoName);
+    res.json({
+      content: [
+        {
+          type: "text",
+          text: `Details for repository "${repoName}":\n${JSON.stringify(details, null, 2)}`,
+        },
+      ],
+    });
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+});
+
+app.post("/tool/deleteRepository", async (req, res) => {
+  try {
+    const { repoName } = req.body;
+    const message = await deleteRepository(repoName);
+    res.json({
+      content: [
+        {
+          type: "text",
+          text: message,
+        },
+      ],
+    });
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+});
+
+app.post("/tool/listRepositories", async (req, res) => {
+  try {
+    const repos = await listRepositories();
+    res.json({
+      content: [
+        {
+          type: "text",
+          text: `Repositories:\n${repos.join("\n")}`,
         },
       ],
     });

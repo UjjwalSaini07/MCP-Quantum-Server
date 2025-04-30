@@ -75,3 +75,50 @@ export async function manageRepository(repoName, description) {
     throw error;
   }
 }
+
+// List all repositories for the authenticated user
+export async function listRepositories() {
+  try {
+    console.log("Fetching list of repositories...");
+    const user = gh.getUser();
+    const { data: repos } = await user.listRepos();
+    const repoNames = repos.map((repo) => repo.name);
+    console.log(`Found ${repoNames.length} repositories.`);
+    return repoNames;
+  } catch (error) {
+    console.error("Error listing repositories:", error);
+    throw new Error("Failed to list repositories.");
+  }
+}
+
+// Delete a repository
+export async function deleteRepository(repoName) {
+  try {
+    console.log(`Deleting repository "${repoName}"...`);
+    const repo = gh.getRepo(process.env.GITHUB_REPO_OWNER, repoName);
+    await repo.deleteRepo();
+    console.log(`Repository "${repoName}" deleted successfully.`);
+    return `Repository "${repoName}" has been deleted.`;
+  } catch (error) {
+    console.error("Error deleting repository:", error);
+    throw new Error("Failed to delete repository.");
+  }
+}
+
+// View details of a repository
+export async function viewRepository(repoName) {
+  try {
+    console.log(`Fetching details for repository "${repoName}"...`);
+    const repo = gh.getRepo(process.env.GITHUB_REPO_OWNER, repoName);
+    const { data: details } = await repo.getDetails();
+    console.log(`Repository "${repoName}" details fetched.`);
+    return details;
+  } catch (error) {
+    if (error.response?.status === 404) {
+      console.log(`Repository "${repoName}" does not exist.`);
+      return `Repository "${repoName}" does not exist.`;
+    }
+    console.error("Error viewing repository:", error);
+    throw new Error("Failed to fetch repository details.");
+  }
+}
