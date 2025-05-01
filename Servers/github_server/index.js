@@ -1,9 +1,9 @@
 import express from "express";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { z } from "zod";
 import dotenv from "dotenv";
 import chalk from "chalk";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { checkRepoExists, createRepository, manageRepository, listRepositories, deleteRepository, viewRepository, addCollaborator, removeCollaborator, getUserDetails, getRepositoryTraffic, setRepositoryVisibility, renameRepository, createIssue} from "./main_MCP.tool.js";
 
 dotenv.config();
@@ -18,7 +18,7 @@ const server = new McpServer({
   version: "1.0.0",
 });
 
-// Register MCP tools (message-based usage like /sse)
+// Check Repository
 server.tool(
   "checkRepoExists",
   "Check if a GitHub repository exists",
@@ -248,9 +248,9 @@ server.tool(
   }
 );
 
-// ============================
-// REST API ENDPOINTS FOR CLIENT
-// ============================
+// ==================================
+// REST API ENDPOINTS FOR CLIENT SIDE
+// ==================================
 
 // Check if repository exists
 app.post("/tool/checkRepoExists", async (req, res) => {
@@ -362,7 +362,7 @@ app.post("/tool/manageRepository", async (req, res) => {
   }
 });
 
-// Add Collab
+// Add Collaborator
 app.post("/tool/addCollaborator", async (req, res) => {
   try {
     const { repoName, collaboratorUsername, permission } = req.body;
@@ -380,7 +380,7 @@ app.post("/tool/addCollaborator", async (req, res) => {
   }
 });
 
-// Remove Collab
+// Remove Collaborator
 app.post("/tool/removeCollaborator", async (req, res) => {
   try {
     const { repoName, collaboratorUsername } = req.body;
@@ -432,7 +432,6 @@ app.post('/tool/getRepositoryTraffic', async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-
 
 // Set Repository Visibility
 app.post('/tool/setRepositoryVisibility', async (req, res) => {
@@ -497,11 +496,28 @@ app.post("/messages", async (req, res) => {
 });
 
 // MAIN SERVER START
-app.listen(PORT, () => {
+const httpServer = app.listen(PORT, () => {
   console.clear();
   console.log(chalk.green.bold('\n========================================='));
   console.log(chalk.green.bold('🚀 Server Status: ') + chalk.cyan.bold('Online'));
   console.log(chalk.green.bold('🌐 Listening on: ') + chalk.yellow.underline(`http://localhost:${PORT}`));
   console.log(chalk.green.bold('📅 Started at: ') + chalk.magenta(new Date().toLocaleString()));
   console.log(chalk.green.bold('=========================================\n'));
+});
+
+// Handle server close event
+httpServer.on('close', () => {
+  console.log(chalk.red.bold('\n========================================='));
+  console.log(chalk.red.bold('🛑 Server Status: ') + chalk.yellow.bold('Offline'));
+  console.log(chalk.red.bold('🔔 Server has been closed.'));
+  console.log(chalk.red.bold('=========================================\n'));
+});
+
+// Graceful shutdown on Ctrl+C
+process.on('SIGINT', () => {
+  console.log(chalk.blue.bold('Gracefully shutting down the server...'));
+  httpServer.close(() => {
+    console.log(chalk.blue.bold('Server shut down complete.'));
+    process.exit(0);
+  });
 });

@@ -3,6 +3,8 @@ import chalk from "chalk";
 import fetch from "node-fetch";
 import fs from "fs";
 import ora from "ora";
+import net from "net";
+import url from "url";
 import prompts from "prompts";
 import dotenv from "dotenv";
 
@@ -10,6 +12,45 @@ dotenv.config();
 
 const MCP_SERVER_URL = process.env.MCP_SERVER_URL || "http://localhost:3001";
 const LOG_FILE = "action_history.log";
+
+const parsedUrl = new URL(MCP_SERVER_URL);
+const hostname = parsedUrl.hostname;
+const port = parseInt(parsedUrl.port, 10);
+
+async function startClient() {
+  const client = new net.Socket();
+
+  console.log(chalk.blueBright(`Attempting to connect to the server at ${chalk.bold(`${hostname}:${port}`)}...`));
+  client.connect(port, hostname, () => {
+      console.log(chalk.greenBright(`\n✅ Successfully connected to the server at ${chalk.bold(`${hostname}:${port}`)}.\n`));
+      main();
+
+      process.stdin.on('data', (data) => {
+          const message = data.toString().trim();
+          if (message.toLowerCase() === 'exit') {
+              console.log(chalk.yellowBright('👋 Exiting client... Goodbye!'));
+              client.end();
+              process.exit(0);
+          }
+      });
+  });
+
+  client.on('error', (err) => {
+      if (err.code === 'ECONNREFUSED') {
+          console.warn(chalk.redBright(`\n❌ Could not connect to the server at ${chalk.bold(`${hostname}:${port}`)}. Please start the server first.`));
+          process.exit(0);
+      } else {
+          console.error(chalk.red(`🔥 An unexpected error occurred: ${err.message}`));
+          process.exit(1);
+      }
+  });
+
+  client.on('close', () => {
+      console.log(chalk.yellow('🔌 Connection to server closed.'));
+  });
+}
+
+startClient();
 
 /**
  * Send a POST request to a specific tool endpoint on the MCP server.
@@ -73,18 +114,23 @@ function logAction(action) {
   fs.appendFileSync(LOG_FILE, logEntry, "utf8");
 }
 
+function pause(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function main() {
   console.log(chalk.greenBright("Welcome to the Enhanced MCP Repository Manager!"));
-  console.log(chalk.blueBright("Type 'help' for a list of available commands.\n"));
+  console.log(chalk.blueBright("Type 'help' for a list of available commands."));
   let count = 0;
 
   while (true) {
     try {
       if(count > 0){
+        await pause(3000);
         console.log("");
         console.log(chalk.gray('='.repeat(40)));
         console.log(chalk.bgGreenBright.black.bold(` RE-RUN THE PROGRAM: ${count} `));
-        console.log(chalk.gray('='.repeat(40))); ;
+        console.log(chalk.gray('='.repeat(40)));
       }
       count++;
       const timestamp = chalk.gray(`[${new Date().toLocaleTimeString()}]`);
@@ -132,7 +178,7 @@ async function main() {
       }      
 
       if (action.toLowerCase() === "help" || action === "9") {
-        console.log(chalk.magentaBright("\nAvailable Commands:"));
+        console.log(chalk.magentaBright("Available Commands:"));
         console.log(chalk.yellow("check") + ": Check if a repository exists.");
         console.log(chalk.yellow("create") + ": Create a new repository.");
         console.log(chalk.yellow("manage") + ": Manage an existing repository.");
@@ -147,11 +193,24 @@ async function main() {
       }
 
       if (action.toLowerCase() === "list" || action === "4") {
-        const msg = await callTool("listRepositories", {});
-        console.log(chalk.greenBright("\n📂 Repositories:"));
-        console.log(msg);
-        logAction("Listed all repositories.");
-        continue;
+        try {
+            const msg = await callTool("listRepositories", {});
+            let repos = Array.isArray(msg) ? msg : msg.split('\n');
+            repos = repos.filter(repo => repo.trim().toLowerCase() !== "repositories:" && repo.trim() !== "");
+            console.log(chalk.greenBright("\n📂 Repositories:"));
+            // Dynamically calculate padding for alignment
+            const maxIndexLength = String(repos.length).length;
+    
+            repos.forEach((repo, index) => {
+                const paddedIndex = String(index + 1).padStart(maxIndexLength, ' ');
+                console.log(`${chalk.cyanBright(paddedIndex)}. ${chalk.blueBright(repo.trim())}`);
+            });
+            logAction("Listed all repositories.");
+        } catch (error) {
+            console.error(chalk.redBright("\n❌ Error listing repositories: "), error.message);
+        } finally {
+            continue;
+        }
       }
 
       // if (action.toLowerCase() === "batch" || action === "7") {
@@ -192,11 +251,14 @@ async function main() {
       
         continue;
       }
-
-      const repoName = await ask("Enter repository name:\n> ");
-      if (!repoName) {
-        console.log(chalk.red("❌ Repository name cannot be empty."));
-        continue;
+      
+      let repoName;
+      if(action.toLowerCase() !== "manage"){
+        repoName = await ask("Enter repository name:\n> ");
+        if (!repoName) {
+          console.log(chalk.red("❌ Repository name cannot be empty."));
+          continue;
+        }
       }
 
       if (action.toLowerCase() === "delete" || action === "5") {
@@ -391,4 +453,4 @@ async function main() {
   }
 }
 
-main();
+// main();

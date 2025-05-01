@@ -173,12 +173,13 @@ export async function viewRepository(repoName) {
   }
 }
 
+// Add Collaborator
 export async function addCollaborator(repoName, collaboratorUsername, permission = "push") {
   try {
     const owner = process.env.GITHUB_REPO_OWNER;
     const token = process.env.GITHUB_TOKEN;
 
-    const url = `https://api.github.com/repos/${owner}/${repoName}/collaborators/${collaboratorUsername}`;
+    const url = `${GITHUB_API_BASE}/repos/${owner}/${repoName}/collaborators/${collaboratorUsername}`;
     const response = await fetch(url, {
       method: "PUT",
       headers: {
@@ -201,12 +202,13 @@ export async function addCollaborator(repoName, collaboratorUsername, permission
   }
 }
 
+// Remove Collaborator
 export async function removeCollaborator(repoName, collaboratorUsername) {
   try {
     const owner = process.env.GITHUB_REPO_OWNER;
     const token = process.env.GITHUB_TOKEN;
 
-    const url = `https://api.github.com/repos/${owner}/${repoName}/collaborators/${collaboratorUsername}`;
+    const url = `${GITHUB_API_BASE}/repos/${owner}/${repoName}/collaborators/${collaboratorUsername}`;
     const response = await fetch(url, {
       method: "DELETE",
       headers: {
@@ -227,9 +229,11 @@ export async function removeCollaborator(repoName, collaboratorUsername) {
     throw new Error("Failed to remove collaborator.");
   }
 }
+
+// Get User Details
 export async function getUserDetails(username) {
   try {
-    const response = await fetch(`https://api.github.com/users/${username}`, {
+    const response = await fetch(`${GITHUB_API_BASE}/users/${username}`, {
       headers: {
         Authorization: `token ${process.env.GITHUB_TOKEN}`,
       },
@@ -250,6 +254,7 @@ export async function getUserDetails(username) {
   }
 }
 
+// Get Repository Traffic
 export async function getRepositoryTraffic(repoName) {
   try {
     const res = await fetch(`${GITHUB_API_BASE}/repos/${OWNER}/${repoName}/traffic/views`, {
