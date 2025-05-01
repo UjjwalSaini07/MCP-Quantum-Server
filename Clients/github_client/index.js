@@ -116,7 +116,7 @@ function logAction(action) {
 
 async function main() {
   console.log(chalk.greenBright("Welcome to the Enhanced MCP Repository Manager!"));
-  console.log(chalk.blueBright("Type 'help' for a list of available commands.\n"));
+  console.log(chalk.blueBright("Type 'help' for a list of available commands."));
   let count = 0;
 
   while (true) {
@@ -173,7 +173,7 @@ async function main() {
       }      
 
       if (action.toLowerCase() === "help" || action === "9") {
-        console.log(chalk.magentaBright("\nAvailable Commands:"));
+        console.log(chalk.magentaBright("Available Commands:"));
         console.log(chalk.yellow("check") + ": Check if a repository exists.");
         console.log(chalk.yellow("create") + ": Create a new repository.");
         console.log(chalk.yellow("manage") + ": Manage an existing repository.");
@@ -233,11 +233,14 @@ async function main() {
       
         continue;
       }
-
-      const repoName = await ask("Enter repository name:\n> ");
-      if (!repoName) {
-        console.log(chalk.red("❌ Repository name cannot be empty."));
-        continue;
+      
+      let repoName;
+      if(action.toLowerCase() !== "manage"){
+        repoName = await ask("Enter repository name:\n> ");
+        if (!repoName) {
+          console.log(chalk.red("❌ Repository name cannot be empty."));
+          continue;
+        }
       }
 
       if (action.toLowerCase() === "delete" || action === "5") {
