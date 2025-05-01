@@ -114,6 +114,10 @@ function logAction(action) {
   fs.appendFileSync(LOG_FILE, logEntry, "utf8");
 }
 
+function pause(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function main() {
   console.log(chalk.greenBright("Welcome to the Enhanced MCP Repository Manager!"));
   console.log(chalk.blueBright("Type 'help' for a list of available commands."));
@@ -122,10 +126,11 @@ async function main() {
   while (true) {
     try {
       if(count > 0){
+        await pause(3000);
         console.log("");
         console.log(chalk.gray('='.repeat(40)));
         console.log(chalk.bgGreenBright.black.bold(` RE-RUN THE PROGRAM: ${count} `));
-        console.log(chalk.gray('='.repeat(40))); ;
+        console.log(chalk.gray('='.repeat(40)));
       }
       count++;
       const timestamp = chalk.gray(`[${new Date().toLocaleTimeString()}]`);
@@ -188,11 +193,24 @@ async function main() {
       }
 
       if (action.toLowerCase() === "list" || action === "4") {
-        const msg = await callTool("listRepositories", {});
-        console.log(chalk.greenBright("\n📂 Repositories:"));
-        console.log(msg);
-        logAction("Listed all repositories.");
-        continue;
+        try {
+            const msg = await callTool("listRepositories", {});
+            let repos = Array.isArray(msg) ? msg : msg.split('\n');
+            repos = repos.filter(repo => repo.trim().toLowerCase() !== "repositories:" && repo.trim() !== "");
+            console.log(chalk.greenBright("\n📂 Repositories:"));
+            // Dynamically calculate padding for alignment
+            const maxIndexLength = String(repos.length).length;
+    
+            repos.forEach((repo, index) => {
+                const paddedIndex = String(index + 1).padStart(maxIndexLength, ' ');
+                console.log(`${chalk.cyanBright(paddedIndex)}. ${chalk.blueBright(repo.trim())}`);
+            });
+            logAction("Listed all repositories.");
+        } catch (error) {
+            console.error(chalk.redBright("\n❌ Error listing repositories: "), error.message);
+        } finally {
+            continue;
+        }
       }
 
       // if (action.toLowerCase() === "batch" || action === "7") {
