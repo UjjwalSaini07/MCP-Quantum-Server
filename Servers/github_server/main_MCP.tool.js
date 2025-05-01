@@ -178,7 +178,7 @@ export async function addCollaborator(repoName, collaboratorUsername, permission
     const owner = process.env.GITHUB_REPO_OWNER;
     const token = process.env.GITHUB_TOKEN;
 
-    const url = `https://api.github.com/repos/${owner}/${repoName}/collaborators/${collaboratorUsername}`;
+    const url = `${GITHUB_API_BASE}/repos/${owner}/${repoName}/collaborators/${collaboratorUsername}`;
     const response = await fetch(url, {
       method: "PUT",
       headers: {
@@ -206,7 +206,7 @@ export async function removeCollaborator(repoName, collaboratorUsername) {
     const owner = process.env.GITHUB_REPO_OWNER;
     const token = process.env.GITHUB_TOKEN;
 
-    const url = `https://api.github.com/repos/${owner}/${repoName}/collaborators/${collaboratorUsername}`;
+    const url = `${GITHUB_API_BASE}/repos/${owner}/${repoName}/collaborators/${collaboratorUsername}`;
     const response = await fetch(url, {
       method: "DELETE",
       headers: {
@@ -229,7 +229,7 @@ export async function removeCollaborator(repoName, collaboratorUsername) {
 }
 export async function getUserDetails(username) {
   try {
-    const response = await fetch(`https://api.github.com/users/${username}`, {
+    const response = await fetch(`${GITHUB_API_BASE}/users/${username}`, {
       headers: {
         Authorization: `token ${process.env.GITHUB_TOKEN}`,
       },
