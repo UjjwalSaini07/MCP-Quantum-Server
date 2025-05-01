@@ -3,6 +3,8 @@ import chalk from "chalk";
 import fetch from "node-fetch";
 import fs from "fs";
 import ora from "ora";
+import net from "net";
+import url from "url";
 import prompts from "prompts";
 import dotenv from "dotenv";
 
@@ -10,6 +12,45 @@ dotenv.config();
 
 const MCP_SERVER_URL = process.env.MCP_SERVER_URL || "http://localhost:3001";
 const LOG_FILE = "action_history.log";
+
+const parsedUrl = new URL(MCP_SERVER_URL);
+const hostname = parsedUrl.hostname;
+const port = parseInt(parsedUrl.port, 10);
+
+async function startClient() {
+  const client = new net.Socket();
+
+  console.log(chalk.blueBright(`Attempting to connect to the server at ${chalk.bold(`${hostname}:${port}`)}...`));
+  client.connect(port, hostname, () => {
+      console.log(chalk.greenBright(`\n✅ Successfully connected to the server at ${chalk.bold(`${hostname}:${port}`)}.\n`));
+      main();
+
+      process.stdin.on('data', (data) => {
+          const message = data.toString().trim();
+          if (message.toLowerCase() === 'exit') {
+              console.log(chalk.yellowBright('👋 Exiting client... Goodbye!'));
+              client.end();
+              process.exit(0);
+          }
+      });
+  });
+
+  client.on('error', (err) => {
+      if (err.code === 'ECONNREFUSED') {
+          console.warn(chalk.redBright(`\n❌ Could not connect to the server at ${chalk.bold(`${hostname}:${port}`)}. Please start the server first.`));
+          process.exit(0);
+      } else {
+          console.error(chalk.red(`🔥 An unexpected error occurred: ${err.message}`));
+          process.exit(1);
+      }
+  });
+
+  client.on('close', () => {
+      console.log(chalk.yellow('🔌 Connection to server closed.'));
+  });
+}
+
+startClient();
 
 /**
  * Send a POST request to a specific tool endpoint on the MCP server.
@@ -391,4 +432,4 @@ async function main() {
   }
 }
 
-main();
+// main();
