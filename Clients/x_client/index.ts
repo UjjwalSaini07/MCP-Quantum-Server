@@ -1,12 +1,9 @@
 import readline from "readline/promises";
-import {
-  GoogleGenAI,
-  type FunctionDeclaration,
-  type FunctionCall,
-} from "@google/genai";
+import dotenv from "dotenv";
+import chalk from "chalk";
+import { GoogleGenAI, type FunctionDeclaration, type FunctionCall, } from "@google/genai";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
-import dotenv from "dotenv";
 
 dotenv.config();
 
@@ -38,6 +35,7 @@ interface ToolResult {
 
 let tools: Tool[] = [];
 if (!process.env.GEMINI_API_KEY) {
+  console.error(chalk.red.bold("Error: GEMINI_API_KEY environment variable is not set"));
   throw new Error("GEMINI_API_KEY environment variable is not set");
 }
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -55,10 +53,14 @@ const rl = readline.createInterface({
 mcpClient
   .connect(new SSEClientTransport(new URL("http://localhost:3001/sse")))
   .then(async () => {
-    console.log("Connected to mcp server");
+    console.clear();
+    console.log(chalk.green.bold('\n====================================='));
+    console.log(chalk.green.bold('✅ Connected to MCP server : ') + chalk.cyan.bold('Online'));
+    console.log(chalk.green.bold('=====================================\n'));
 
     tools = (await mcpClient.listTools()).tools.map((tool) => {
       if (!tool.inputSchema.properties) {
+        console.error(chalk.red.bold(`Error: Tool ${tool.name} has no properties defined`));
         throw new Error(`Tool ${tool.name} has no properties defined`);
       }
       const required = Array.isArray(tool.inputSchema.required)
@@ -75,18 +77,19 @@ mcpClient
       };
     });
 
+    console.log(chalk.cyan.bold(`Loaded ${tools.length} tools successfully.\n`));
     chatLoop();
   });
 
 async function chatLoop(toolCall?: FunctionCall): Promise<void> {
   if (toolCall && toolCall.name) {
-    console.log("calling tool ", toolCall.name);
+    console.log(chalk.blue.bold(`\n🔧 Calling tool: ${toolCall.name}`));
 
     chatHistory.push({
       role: "model",
       parts: [
         {
-          text: `calling tool ${toolCall.name}`,
+          text: `Calling tool ${toolCall.name}`,
           type: "text",
         },
       ],
@@ -98,18 +101,19 @@ async function chatLoop(toolCall?: FunctionCall): Promise<void> {
     })) as ToolResult;
 
     if (toolResult.content[0]?.text) {
+      console.log(chalk.yellow(`\nTool result: ${toolResult.content[0].text}`));
       chatHistory.push({
         role: "user",
         parts: [
           {
-            text: "Tool result : " + toolResult.content[0].text,
+            text: `Tool result: ${toolResult.content[0].text}`,
             type: "text",
           },
         ],
       });
     }
   } else {
-    const question = await rl.question("You: ");
+    const question = await rl.question(chalk.magenta("You: "));
     chatHistory.push({
       role: "user",
       parts: [
@@ -134,19 +138,18 @@ async function chatLoop(toolCall?: FunctionCall): Promise<void> {
   });
 
   if (!response.candidates?.length) {
-    console.error("No candidates in response");
+    console.error(chalk.red.bold("Error: No candidates in response"));
     return chatLoop();
   }
 
   const firstCandidate = response.candidates[0];
   if (!firstCandidate?.content?.parts?.length) {
-    console.error("No content or parts in first candidate");
+    console.error(chalk.red.bold("Error: No content or parts in first candidate"));
     return chatLoop();
   }
 
-  const functionCall =
-    firstCandidate?.content?.parts?.[0]?.functionCall ?? null;
-  const responseText = firstCandidate!.content!.parts[0]?.text ?? "";
+  const functionCall = firstCandidate.content.parts[0]?.functionCall ?? null;
+  const responseText = firstCandidate.content.parts[0]?.text ?? "";
 
   if (functionCall) {
     return chatLoop(functionCall);
@@ -162,7 +165,7 @@ async function chatLoop(toolCall?: FunctionCall): Promise<void> {
     ],
   });
 
-  console.log(`AI: ${responseText}`);
+  console.log(chalk.greenBright(`AI: ${responseText}`));
 
   chatLoop();
 }
