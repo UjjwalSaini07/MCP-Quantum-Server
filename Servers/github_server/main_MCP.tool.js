@@ -173,6 +173,7 @@ export async function viewRepository(repoName) {
   }
 }
 
+// Add Collaborator
 export async function addCollaborator(repoName, collaboratorUsername, permission = "push") {
   try {
     const owner = process.env.GITHUB_REPO_OWNER;
@@ -201,6 +202,7 @@ export async function addCollaborator(repoName, collaboratorUsername, permission
   }
 }
 
+// Remove Collaborator
 export async function removeCollaborator(repoName, collaboratorUsername) {
   try {
     const owner = process.env.GITHUB_REPO_OWNER;
@@ -227,6 +229,8 @@ export async function removeCollaborator(repoName, collaboratorUsername) {
     throw new Error("Failed to remove collaborator.");
   }
 }
+
+// Get User Details
 export async function getUserDetails(username) {
   try {
     const response = await fetch(`${GITHUB_API_BASE}/users/${username}`, {
@@ -250,6 +254,7 @@ export async function getUserDetails(username) {
   }
 }
 
+// Get Repository Traffic
 export async function getRepositoryTraffic(repoName) {
   try {
     const res = await fetch(`${GITHUB_API_BASE}/repos/${OWNER}/${repoName}/traffic/views`, {
