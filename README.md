@@ -34,3 +34,18 @@ You can visit the live site here - https://github.com/UjjwalSaini07/MCP-Quantum-
 - **TypeScript** – A statically typed superset of JavaScript that enhances code reliability and maintainability.
 - **Node.js** – A powerful runtime environment for executing JavaScript server-side, enabling efficient and scalable backend development.
 - **Docker** – A containerization platform enabling seamless deployment, scalability, and efficient application management.
+
+## Contact 📞
+Feel free to reach out if you have any questions or suggestions!
+
+- Raise an issue for the same [Issue](https://github.com/UjjwalSaini07/MCP-Quantum-Server/issues)
+- Github: [@Ujjwal Saini](https://github.com/UjjwalSaini07)
+
+## Feedback and Contributions 💌
+Sorry But this project not welcome Contributions! Yes u gave a Feedback and Suggestion via raising the [Issues](https://github.com/UjjwalSaini07/MCP-Quantum-Server/issues).
+
+<div align="center">
+    <a href="#top">
+        <img src="https://img.shields.io/badge/Back%20to%20Top-000000?style=for-the-badge&logo=github&logoColor=white" alt="Back to Top">
+    </a>
+</div>
