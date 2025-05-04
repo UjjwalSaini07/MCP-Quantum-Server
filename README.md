@@ -35,6 +35,36 @@ You can visit the live site here - https://github.com/UjjwalSaini07/MCP-Quantum-
 - **Node.js** – A powerful runtime environment for executing JavaScript server-side, enabling efficient and scalable backend development.
 - **Docker** – A containerization platform enabling seamless deployment, scalability, and efficient application management.
 
+## Installation 🛠️
+- First Read this [License](https://github.com/UjjwalSaini07/MCP-Quantum-Server/blob/main/LICENSE) & their terms then proceed.
+- Star the [Repository](https://github.com/UjjwalSaini07/MCP-Quantum-Server)
+- Clone the repository:
+```bash
+  git clone https://github.com/UjjwalSaini07/MCP-Quantum-Server.git
+```
+- Install the necessary dependencies to navigate to the appropriate directory:
+```bash
+  pnpm install
+```
+- Contact to Me For Neccesaary Credential to Start the Server [Contact](https://github.com/UjjwalSaini07/MCP-Quantum-Server/issues)
+
+## Usage 🖥️
+> [!IMPORTANT]  
+> First, use the cd command to navigate to the appropriate directory (For Both X and GitHub).
+
+- Start the development server
+```bash
+   pnpm start
+ ```
+- Start the Client
+```bash
+   pnpm start
+ ```
+- This is Client-Server Architecture so It run on CLI (Command Line Interface) in VS Code Terminal.
+
+## Author
+- [@Ujjwal Saini](https://github.com/UjjwalSaini07)
+
 ## Contact 📞
 Feel free to reach out if you have any questions or suggestions!
 
